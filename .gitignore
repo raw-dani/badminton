@@ -1,0 +1,63 @@
+# ==========================================
+# Root .gitignore for Badminton Champion League
+# ==========================================
+
+# Dependencies
+node_modules/
+**/node_modules/
+vendor/
+**/vendor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Build artifacts
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+public/build/
+**/public/build/
+public/hot/
+**/public/hot/
+
+# Logs and cache
+*.log
+logs/
+**/logs/
+.phpunit.result.cache
+.phpunit.cache
+/.phpunit.cache
+
+# Laravel Storage & Cache
+backend/storage/*.key
+backend/storage/app/public/avatars/*
+!backend/storage/app/public/avatars/.gitkeep
+backend/storage/framework/cache/*
+!backend/storage/framework/cache/.gitkeep
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitkeep
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitkeep
+backend/storage/logs/*
+!backend/storage/logs/.gitkeep
+backend/bootstrap/cache/*
+!backend/bootstrap/cache/.gitkeep
+
+# IDE and OS files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+Homestead.json
+Homestead.yaml
+_ide_helper.php
+.phpactor.json
