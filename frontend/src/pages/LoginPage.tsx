@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { LogIn, AlertCircle, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react'
+import { LogIn, AlertCircle, ArrowRight, UserCheck } from 'lucide-react'
 import { GoldShuttlecock } from '../components/GoldShuttlecock'
 import { useAuth } from '../context/AuthContext'
 
@@ -34,11 +34,6 @@ export const LoginPage: React.FC = () => {
     setPassword('password123')
   }
 
-  const fillAdmin = () => {
-    setLoginId('admin')
-    setPassword('password123')
-  }
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-6">
@@ -56,27 +51,19 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Demo Login Helpers */}
+        {/* Quick Demo Login Helper */}
         <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2">
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Quick 1-Click Demo Logins
+            Quick 1-Click Demo Login
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div>
             <button
               type="button"
               onClick={fillDemoPlayer}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 transition-all text-left truncate"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 transition-all text-center truncate"
             >
               <UserCheck className="w-3.5 h-3.5 shrink-0" />
               Demo Player
-            </button>
-            <button
-              type="button"
-              onClick={fillAdmin}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all text-left truncate"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              Admin Arbiter
             </button>
           </div>
         </div>
