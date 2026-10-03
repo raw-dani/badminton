@@ -20,6 +20,8 @@ class PointTransaction extends Model
     public const CAT_RANKED_MATCH_LOSS = 'RANKED_MATCH_LOSS';
     public const CAT_RANKED_MATCH_REFUND = 'RANKED_MATCH_REFUND';
     public const CAT_AFFILIATE_REWARD = 'AFFILIATE_REWARD';
+    public const CAT_TEAM_CREATION = 'TEAM_CREATION';
+    public const CAT_TEAM_UPGRADE = 'TEAM_UPGRADE';
     public const CAT_ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT';
     public const CAT_SEASON_ADJUSTMENT = 'SEASON_ADJUSTMENT';
 

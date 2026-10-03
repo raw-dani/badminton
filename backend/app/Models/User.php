@@ -108,4 +108,15 @@ class User extends Authenticatable
     {
         return $this->hasOne(Referral::class, 'referred_id');
     }
+
+    public function teamMembership(): HasOne
+    {
+        return $this->hasOne(TeamMember::class)->where('status', 'ACTIVE');
+    }
+
+    public function isInTeam(): bool
+    {
+        return $this->teamMembership()->exists();
+    }
 }
+

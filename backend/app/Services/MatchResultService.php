@@ -12,6 +12,7 @@ use App\Models\PointTransaction;
 use App\Models\Referral;
 use App\Models\Season;
 use App\Models\SeasonPlayerStatistic;
+use App\Models\TeamMember;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -50,29 +51,36 @@ class MatchResultService
                     return true;
                 }
 
-                // Verify every participant has at least 3 Battle Points
+                // Verify every participant has required Battle Points (5 BP if in team, 3 BP if solo)
                 foreach ($lockedMatch->matchPlayers as $matchPlayer) {
                     $balance = PlayerPointBalance::where('user_id', $matchPlayer->user_id)
                         ->lockForUpdate()
                         ->first();
                     $bp = $balance ? $balance->battle_points : 0;
-                    if ($bp < 3) {
+                    $isInTeam = TeamMember::where('user_id', $matchPlayer->user_id)->where('status', 'ACTIVE')->exists();
+                    $requiredFee = $isInTeam ? 5 : 3;
+
+                    if ($bp < $requiredFee) {
                         throw new InvalidArgumentException(sprintf(
-                            'Player "%s" has insufficient Battle Points (%d). Minimum 3 Battle Points required for Ranked Match.',
+                            'Player "%s" has insufficient Battle Points (%d). Minimum %d Battle Points required for Ranked Match%s.',
                             $matchPlayer->user->name ?? 'Player #' . $matchPlayer->user_id,
-                            $bp
+                            $bp,
+                            $requiredFee,
+                            $isInTeam ? ' (Team Member rate: -5 BP)' : ''
                         ));
                     }
                 }
 
-                // All players have >= 3 BP. Atomically deduct 3 BP from each participant
+                // Deduct entry fee from each participant (5 BP if in team, 3 BP if solo)
                 foreach ($lockedMatch->matchPlayers as $matchPlayer) {
+                    $isInTeam = TeamMember::where('user_id', $matchPlayer->user_id)->where('status', 'ACTIVE')->exists();
+                    $deductFee = $isInTeam ? -5 : -3;
                     $idempotencyKey = sprintf('ranked_entry_%d_%d', $lockedMatch->id, $matchPlayer->user_id);
                     $this->battlePointService->adjustPoints(
                         userId: $matchPlayer->user_id,
-                        changeAmount: -3,
+                        changeAmount: $deductFee,
                         category: PointTransaction::CAT_RANKED_MATCH_ENTRY_DEDUCTION,
-                        description: sprintf('Ranked Match #%s entry deduction (-3 BP)', $lockedMatch->match_code),
+                        description: sprintf('Ranked Match #%s entry deduction (%d BP%s)', $lockedMatch->match_code, $deductFee, $isInTeam ? ' - Team Member' : ''),
                         matchId: $lockedMatch->id,
                         idempotencyKey: $idempotencyKey
                     );
@@ -313,10 +321,12 @@ class MatchResultService
                     $balance = PlayerPointBalance::where('id', $balance->id)->lockForUpdate()->first();
                 }
 
+                $isInTeam = TeamMember::where('user_id', $userId)->where('status', 'ACTIVE')->exists();
+
                 if ($lockedMatch->type === 'BATTLE') {
-                    $points = $isWinner ? 3 : 1;
+                    $points = $isWinner ? ($isInTeam ? 5 : 3) : ($isInTeam ? 2 : 1);
                     $category = $isWinner ? PointTransaction::CAT_BATTLE_MATCH_WIN : PointTransaction::CAT_BATTLE_MATCH_LOSS;
-                    $description = sprintf('Battle Match #%s (%s: %s)', $lockedMatch->match_code, $isWinner ? 'Win' : 'Loss', $isWinner ? '+3 BP' : '+1 BP');
+                    $description = sprintf('Battle Match #%s (%s: +%d BP%s)', $lockedMatch->match_code, $isWinner ? 'Win' : 'Loss', $points, $isInTeam ? ' - Team Bonus' : '');
                     $idempotencyKey = sprintf('battle_award_%d_%d', $lockedMatch->id, $userId);
 
                     $this->battlePointService->adjustPoints(
@@ -336,9 +346,9 @@ class MatchResultService
                     $balance->battle_matches += 1;
                 } else {
                     // RANKED
-                    $points = $isWinner ? 3 : -1;
+                    $points = $isWinner ? ($isInTeam ? 5 : 3) : ($isInTeam ? -2 : -1);
                     $category = $isWinner ? PointTransaction::CAT_RANKED_MATCH_WIN : PointTransaction::CAT_RANKED_MATCH_LOSS;
-                    $description = sprintf('Ranked Match #%s (%s: %s)', $lockedMatch->match_code, $isWinner ? 'Win' : 'Loss', $isWinner ? '+3 RP' : '-1 RP');
+                    $description = sprintf('Ranked Match #%s (%s: %s%d RP%s)', $lockedMatch->match_code, $isWinner ? 'Win' : 'Loss', $points > 0 ? '+' : '', $points, $isInTeam ? ' - Team Bonus' : '');
                     $idempotencyKey = sprintf('ranked_award_%d_%d', $lockedMatch->id, $userId);
 
                     $this->rankPointService->adjustPoints(
@@ -531,11 +541,19 @@ class MatchResultService
                         ->exists();
 
                     if (!$alreadyRefunded) {
+                        $entryTx = PointTransaction::where('match_id', $lockedMatch->id)
+                            ->where('user_id', $player->user_id)
+                            ->where('category', PointTransaction::CAT_RANKED_MATCH_ENTRY_DEDUCTION)
+                            ->first();
+
+                        $isInTeam = TeamMember::where('user_id', $player->user_id)->where('status', 'ACTIVE')->exists();
+                        $refundAmount = $entryTx ? abs($entryTx->amount) : ($isInTeam ? 5 : 3);
+
                         $this->battlePointService->adjustPoints(
                             userId: $player->user_id,
-                            changeAmount: 3,
+                            changeAmount: $refundAmount,
                             category: PointTransaction::CAT_RANKED_MATCH_REFUND,
-                            description: sprintf('Pengembalian Pertandingan Ranked #%s dibatalkan (+3 BP)', $lockedMatch->match_code),
+                            description: sprintf('Pengembalian Pertandingan Ranked #%s dibatalkan (+%d BP)', $lockedMatch->match_code, $refundAmount),
                             matchId: $lockedMatch->id,
                             idempotencyKey: $idempotencyKey,
                             actorId: $actorId

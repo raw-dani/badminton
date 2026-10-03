@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\GameMatch;
 use App\Models\PlayerPointBalance;
+use App\Models\PlayerProfile;
 use App\Models\PointTransaction;
 use App\Models\Season;
 use App\Models\SystemSetting;
@@ -21,6 +22,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class AdminController extends Controller
@@ -148,6 +151,118 @@ class AdminController extends Controller
         );
 
         return $this->success($user, "User account has been {$newStatus}.");
+    }
+
+    /**
+     * Create a new administrator (or player) account.
+     */
+    public function createUser(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'username' => ['required', 'string', 'min:3', 'max:50', 'alpha_dash', 'unique:users,username'],
+            'email' => ['required', 'string', 'email', 'max:100', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'role' => ['required', 'in:admin,player'],
+            'city' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $adminId = Auth::id();
+
+        $user = DB::transaction(function () use ($validated, $adminId) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'username' => strtolower($validated['username']),
+                'email' => strtolower($validated['email']),
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]);
+
+            $playerCode = 'BCL-' . strtoupper(Str::random(6));
+
+            PlayerProfile::create([
+                'user_id' => $user->id,
+                'player_code' => $playerCode,
+                'city' => $validated['city'] ?? null,
+                'bio' => $validated['role'] === 'admin' ? 'System Administrator' : null,
+            ]);
+
+            PlayerPointBalance::create([
+                'user_id' => $user->id,
+                'battle_points' => 0,
+                'rank_points' => 0,
+            ]);
+
+            $this->auditLogService->log(
+                action: 'ADMIN_USER_CREATED',
+                auditable: $user,
+                oldValues: [],
+                newValues: [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                ],
+                reason: "User @{$user->username} created as {$user->role} by administrator",
+                userId: $adminId
+            );
+
+            return $user;
+        });
+
+        $user->load(['profile', 'pointBalance']);
+
+        return $this->success($user, "Account for @{$user->username} created successfully.", 201);
+    }
+
+    /**
+     * Change user role (promote to admin or demote to player).
+     */
+    public function changeUserRole(Request $request, int $id): JsonResponse
+    {
+        $this->authorizeAdmin();
+
+        $validated = $request->validate([
+            'role' => ['required', 'in:admin,player'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user = User::findOrFail($id);
+        $adminId = Auth::id();
+
+        if ($user->id === $adminId && $validated['role'] !== 'admin') {
+            return $this->error('Administrators cannot demote their own account.', 400);
+        }
+
+        $oldRole = $user->role;
+        $newRole = $validated['role'];
+
+        if ($oldRole === $newRole) {
+            return $this->success($user, "User is already assigned the '{$newRole}' role.");
+        }
+
+        $user->role = $newRole;
+        $user->save();
+
+        $reason = $validated['reason'] ?? "Role changed from {$oldRole} to {$newRole} by administrator";
+
+        $this->auditLogService->log(
+            action: 'USER_ROLE_CHANGE',
+            auditable: $user,
+            oldValues: ['role' => $oldRole],
+            newValues: ['role' => $newRole],
+            reason: $reason,
+            userId: $adminId
+        );
+
+        $user->load(['profile', 'pointBalance']);
+
+        return $this->success($user, "User @{$user->username} role successfully changed to {$newRole}.");
     }
 
     /**

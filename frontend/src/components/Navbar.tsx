@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Settings,
   Languages,
+  Users,
 } from 'lucide-react'
 import { getInitials } from '../lib/utils'
 
@@ -129,6 +130,18 @@ export const Navbar: React.FC = () => {
                 </Link>
 
                 <Link
+                  to="/teams"
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    isActive('/teams')
+                      ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-brand-400" />
+                  <span>{t('nav.teams', 'Team')}</span>
+                </Link>
+
+                <Link
                   to="/matches/create"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-brand-500 to-emerald-600 text-slate-950 hover:from-brand-400 hover:to-emerald-500 shadow-md shadow-brand-500/20 transition-all ml-1"
                 >
@@ -230,6 +243,15 @@ export const Navbar: React.FC = () => {
                       >
                         <UserIcon className="w-4 h-4 text-slate-400" />
                         {t('nav.profile')}
+                      </Link>
+
+                      <Link
+                        to="/teams"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5"
+                      >
+                        <Users className="w-4 h-4 text-brand-400" />
+                        {t('nav.myTeam', 'Team & Chat')}
                       </Link>
 
                       <Link
@@ -371,6 +393,14 @@ export const Navbar: React.FC = () => {
               >
                 <LayoutDashboard className="w-4 h-4 text-brand-400" />
                 {t('nav.dashboard')}
+              </Link>
+              <Link
+                to="/teams"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-300 bg-brand-500/10 border border-brand-500/20"
+              >
+                <Users className="w-4 h-4 text-brand-400" />
+                {t('nav.teams', 'Team & Chat')}
               </Link>
               <Link
                 to="/matches/create"

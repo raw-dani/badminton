@@ -18,6 +18,7 @@ import { MatchDetailsPage } from './pages/MatchDetailsPage'
 import { PointLedgerPage } from './pages/PointLedgerPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage'
+import { TeamsPage } from './pages/TeamsPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { AdminDisputesPage } from './pages/AdminDisputesPage'
@@ -89,6 +90,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <PointLedgerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teams"
+            element={
+              <ProtectedRoute>
+                <TeamsPage />
               </ProtectedRoute>
             }
           />

@@ -260,6 +260,45 @@ export interface AffiliateStats {
   referrals: ReferralItem[]
 }
 
+export interface TeamMember {
+  id: number
+  team_id: number
+  user_id: number
+  role: 'LEADER' | 'ADMIN' | 'MEMBER'
+  status: 'ACTIVE' | 'PENDING'
+  joined_at?: string | null
+  created_at: string
+  user?: User
+}
+
+export interface Team {
+  id: number
+  name: string
+  code: string
+  description?: string | null
+  logo_url?: string | null
+  city?: string | null
+  creator_id: number
+  max_members: number
+  battle_points_spent: number
+  status: 'ACTIVE' | 'DISBANDED'
+  created_at: string
+  creator?: User
+  members?: TeamMember[]
+  active_members?: TeamMember[]
+  active_members_count?: number
+  current_user_role?: 'LEADER' | 'ADMIN' | 'MEMBER'
+}
+
+export interface TeamMessage {
+  id: number
+  team_id: number
+  user_id: number
+  message: string
+  created_at: string
+  user?: User & { team_membership?: TeamMember }
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   message: string

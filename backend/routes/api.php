@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PlayerProfileController;
 use App\Http\Controllers\Api\V1\PointController;
 use App\Http\Controllers\Api\V1\SeasonController;
+use App\Http\Controllers\Api\V1\TeamController;
 use Illuminate\Support\Facades\Route;
 
 // Health check endpoint
@@ -52,6 +53,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/matches/{id}', [MatchController::class, 'show']);
     Route::get('/matches/{id}/history', [MatchController::class, 'history']);
 
+    // Public teams browse
+    Route::get('/teams', [TeamController::class, 'index']);
+    Route::get('/teams/{id}', [TeamController::class, 'show']);
+
     // -------------------------------------------------------------
     // Authenticated Endpoints
     // -------------------------------------------------------------
@@ -78,6 +83,17 @@ Route::prefix('v1')->group(function () {
         // Affiliate program
         Route::get('/affiliate/stats', [AffiliateController::class, 'stats']);
 
+        // Teams & Team Management & Team Group Chat
+        Route::get('/teams/my-team', [TeamController::class, 'myTeam']);
+        Route::post('/teams', [TeamController::class, 'store']);
+        Route::post('/teams/{id}/upgrade-quota', [TeamController::class, 'upgradeQuota']);
+        Route::post('/teams/{id}/join', [TeamController::class, 'join']);
+        Route::post('/teams/{id}/leave', [TeamController::class, 'leave']);
+        Route::put('/teams/{id}/members/{memberId}/role', [TeamController::class, 'changeMemberRole']);
+        Route::delete('/teams/{id}/members/{memberId}', [TeamController::class, 'kickMember']);
+        Route::get('/teams/my-team/messages', [TeamController::class, 'getMessages']);
+        Route::post('/teams/my-team/messages', [TeamController::class, 'sendMessage']);
+
         // Matches workflow
         Route::post('/matches', [MatchController::class, 'store']);
         Route::post('/matches/{id}/cancel', [MatchController::class, 'cancel']);
@@ -98,7 +114,9 @@ Route::prefix('v1')->group(function () {
         Route::prefix('admin')->group(function () {
             Route::get('/dashboard', [AdminController::class, 'dashboard']);
             Route::get('/users', [AdminController::class, 'users']);
+            Route::post('/users', [AdminController::class, 'createUser']);
             Route::post('/users/{id}/toggle-status', [AdminController::class, 'toggleUserStatus']);
+            Route::post('/users/{id}/change-role', [AdminController::class, 'changeUserRole']);
             Route::get('/matches', [AdminController::class, 'matches']);
             Route::get('/disputes', [AdminController::class, 'disputes']);
             Route::post('/disputes/{id}/resolve', [AdminController::class, 'resolveDispute']);

@@ -14,16 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('match_id')->nullable()->constrained('matches')->nullOnDelete();
             $table->enum('point_type', ['BATTLE', 'RANK'])->index();
-            $table->enum('category', [
-                'BATTLE_MATCH_WIN',
-                'BATTLE_MATCH_LOSS',
-                'RANKED_MATCH_ENTRY_DEDUCTION',
-                'RANKED_MATCH_WIN',
-                'RANKED_MATCH_LOSS',
-                'RANKED_MATCH_REFUND',
-                'ADMIN_ADJUSTMENT',
-                'SEASON_ADJUSTMENT'
-            ])->index();
+            $table->string('category', 50)->index();
             $table->integer('amount');
             $table->integer('previous_balance');
             $table->integer('new_balance');

@@ -149,11 +149,12 @@ class MatchController extends Controller
             ]);
         }
 
-        // If Ranked match, pre-check creator balance
+        // If Ranked match, pre-check creator balance (5 BP if in team, 3 BP if solo)
         if ($validated['type'] === 'RANKED') {
             $creatorBp = $user->pointBalance?->battle_points ?? 0;
-            if ($creatorBp < 3) {
-                return $this->error("You need at least 3 Battle Points to create a Ranked Match (Current: {$creatorBp} BP).", 422);
+            $requiredBp = $user->isInTeam() ? 5 : 3;
+            if ($creatorBp < $requiredBp) {
+                return $this->error("You need at least {$requiredBp} Battle Points to create a Ranked Match (Current: {$creatorBp} BP" . ($user->isInTeam() ? ', Team Member rate: 5 BP' : '') . ").", 422);
             }
         }
 
