@@ -5,6 +5,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function getAssetUrl(path: string | null | undefined): string {
+  if (!path) return ''
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+  if (apiBase.startsWith('http')) {
+    try {
+      const url = new URL(apiBase)
+      return `${url.origin}${path.startsWith('/') ? '' : '/'}${path}`
+    } catch {
+      // fallback
+    }
+  }
+  return path
+}
+
 export function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-'
   const date = new Date(dateString)

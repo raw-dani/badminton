@@ -23,7 +23,7 @@ import confetti from 'canvas-confetti'
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { formatFullDate, getInitials, getStatusBadgeClass } from '../lib/utils'
+import { formatFullDate, getInitials, getStatusBadgeClass, getAssetUrl } from '../lib/utils'
 import { ScoreSubmissionModal } from '../components/ScoreSubmissionModal'
 import { DisputeModal } from '../components/DisputeModal'
 import type { GameMatch, ApiResponse, MatchComment } from '../types'
@@ -463,7 +463,7 @@ export const MatchDetailsPage: React.FC = () => {
                   <Link to={`/players/${p.user?.username}`} className="flex items-center gap-2.5 group">
                     <div className="w-8 h-8 rounded-lg bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
                       {p.user?.profile?.avatar_url ? (
-                        <img src={p.user.profile.avatar_url} alt={p.user.name} className="w-full h-full object-cover" />
+                        <img src={getAssetUrl(p.user.profile.avatar_url)} alt={p.user.name} className="w-full h-full object-cover" />
                       ) : (
                         getInitials(p.user?.name)
                       )}
@@ -499,7 +499,7 @@ export const MatchDetailsPage: React.FC = () => {
                   <Link to={`/players/${p.user?.username}`} className="flex items-center gap-2.5 group">
                     <div className="w-8 h-8 rounded-lg bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
                       {p.user?.profile?.avatar_url ? (
-                        <img src={p.user.profile.avatar_url} alt={p.user.name} className="w-full h-full object-cover" />
+                        <img src={getAssetUrl(p.user.profile.avatar_url)} alt={p.user.name} className="w-full h-full object-cover" />
                       ) : (
                         getInitials(p.user?.name)
                       )}
@@ -537,7 +537,7 @@ export const MatchDetailsPage: React.FC = () => {
           </div>
           <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40 max-h-[500px] flex items-center justify-center p-2">
             <img
-              src={match.match_photo_url}
+              src={getAssetUrl(match.match_photo_url)}
               alt="Foto Bersama Pemain"
               className="w-full h-auto max-h-[480px] object-contain rounded-xl shadow-lg"
             />
@@ -769,7 +769,7 @@ export const MatchDetailsPage: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
                           {c.user?.profile?.avatar_url ? (
-                            <img src={c.user.profile.avatar_url} alt={c.user.name} className="w-full h-full object-cover" />
+                            <img src={getAssetUrl(c.user.profile.avatar_url)} alt={c.user.name} className="w-full h-full object-cover" />
                           ) : (
                             getInitials(c.user?.name)
                           )}

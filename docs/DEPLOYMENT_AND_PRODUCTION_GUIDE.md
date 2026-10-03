@@ -232,8 +232,11 @@ cp -r dist/* /home/bcl.pemain12.com/public_html/
 
 ---
 
-### 2.7 Langkah 6: Hubungkan API & Storage Menggunakan Symlink
-Jalankan perintah ini agar request `/api` dan `/storage` langsung diarahkan ke backend Laravel secara instan:
+### 2.7 Langkah 6: Hubungkan API & Storage Menggunakan Symlink (Untuk Single Subdomain)
+> [!NOTE]
+> Jika Anda menggunakan **subdomain terpisah `api.bcl.pemain12.com`** khusus untuk backend Laravel, **lewati langkah ini** (tidak perlu membuat symlink di `public_html/` frontend). Langsung ikuti panduan lengkap pada **Bagian 3**.
+
+Jalankan perintah ini hanya jika Anda menggabungkan Frontend dan Backend di dalam 1 subdomain yang sama (`bcl.pemain12.com`):
 
 ```bash
 cd /home/bcl.pemain12.com/public_html
@@ -391,27 +394,217 @@ systemctl restart lsws
 
 ---
 
-## 3. Opsi Alternatif: Dual Subdomain (`bcl.pemain12.com` & `api.bcl.pemain12.com`)
+## 3. Panduan Setup Dual Subdomain: `api.bcl.pemain12.com` (Backend) & `bcl.pemain12.com` (Frontend)
 
-Jika Anda menginginkan pemisahan virtual host 100% antara Frontend dan Backend:
-1. Buat subdomain **`api.bcl.pemain12.com`** di CyberPanel, arahkan Document Root-nya langsung ke:
-   ```text
-   /home/bcl.pemain12.com/backend/public
+Opsi ini adalah arsitektur paling bersih, aman, dan standar industri di mana **Backend Laravel** dan **Frontend React** berada pada virtual host terpisah di CyberPanel.
+
+### 3.1 Struktur Direktori Dua Subdomain di CyberPanel
+
+```text
+/home/
+├── api.bcl.pemain12.com/           <-- WEBSITE 1: BACKEND LARAVEL
+│   ├── backend/                    <-- Source code Laravel lengkap
+│   │   ├── app/
+│   │   ├── bootstrap/
+│   │   ├── storage/
+│   │   ├── public/                 <-- index.php & public storage link
+│   │   └── .env
+│   └── public_html                 <-- Symlink langsung ke /backend/public
+│
+└── bcl.pemain12.com/               <-- WEBSITE 2: FRONTEND REACT SPA
+    └── public_html/                <-- Isi hasil build frontend (dist/*)
+        ├── index.html
+        ├── assets/
+        └── .htaccess               <-- Cukup aturan rewrite React Router
+```
+
+---
+
+### 3.2 Langkah Setup Website 1: `api.bcl.pemain12.com` (Laravel Backend)
+
+1. **Buat Website di CyberPanel:**
+   - Masuk ke CyberPanel > **Websites** > **Create Website** (atau **Create Child Domain**).
+   - Domain: `api.bcl.pemain12.com`
+   - PHP: `8.3`
+   - Centang **SSL**.
+
+2. **Upload / Clone Backend:**
+   ```bash
+   cd /home/api.bcl.pemain12.com
+   git clone https://github.com/raw-dani/badminton.git temp_src
+   mv temp_src/backend ./backend
+   rm -rf temp_src
    ```
-2. Buat subdomain **`bcl.pemain12.com`** di CyberPanel, arahkan Document Root-nya ke:
-   ```text
-   /home/bcl.pemain12.com/frontend/dist
+
+3. **Arahkan `public_html` ke `backend/public`:**
+   Di CyberPanel / OpenLiteSpeed, agar web server langsung membaca folder `public` milik Laravel:
+   ```bash
+   cd /home/api.bcl.pemain12.com
+   # Hapus folder public_html default
+   rm -rf public_html
+   # Buat symlink public_html ke folder public Laravel
+   ln -s /home/api.bcl.pemain12.com/backend/public public_html
    ```
-3. Di file `frontend/.env`, set:
+
+4. **Konfigurasi Environment Backend (`/home/api.bcl.pemain12.com/backend/.env`):**
    ```ini
-   VITE_API_BASE_URL=https://api.bcl.pemain12.com/api/v1
-   ```
-4. Di file `backend/.env`, set:
-   ```ini
+   APP_NAME="Badminton Champion League"
+   APP_ENV=production
+   APP_KEY=base64:...
+   APP_DEBUG=false
    APP_URL=https://api.bcl.pemain12.com
+
+   # URL Frontend & Konfigurasi Cross-Domain Cookies Sanctum
    FRONTEND_URL=https://bcl.pemain12.com
    SANCTUM_STATEFUL_DOMAINS=bcl.pemain12.com
+   SESSION_DOMAIN=.pemain12.com
+
+   # Database
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=nama_db_anda
+   DB_USERNAME=nama_user_db_anda
+   DB_PASSWORD=password_db_anda
+
+   # File upload disk
+   FILESYSTEM_DISK=public
    ```
+
+5. **Install Dependensi & Symlink Storage di Backend:**
+   ```bash
+   cd /home/api.bcl.pemain12.com/backend
+
+   # Install composer
+   /usr/local/lsws/lsphp83/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader
+
+   # Buat link storage (untuk foto bersama dan avatar)
+   /usr/local/lsws/lsphp83/bin/php artisan storage:link
+
+   # Migrasi & Seeder
+   /usr/local/lsws/lsphp83/bin/php artisan migrate --force
+   /usr/local/lsws/lsphp83/bin/php artisan db:seed --force
+
+   # Optimasi Cache
+   /usr/local/lsws/lsphp83/bin/php artisan config:cache
+   /usr/local/lsws/lsphp83/bin/php artisan route:cache
+   /usr/local/lsws/lsphp83/bin/php artisan view:cache
+   ```
+
+6. **Atur Permissions Backend:**
+   ```bash
+   USER_API="api.bcl.pemain12.com"
+   chown -R $USER_API:$USER_API /home/api.bcl.pemain12.com/backend
+   chown -h $USER_API:$USER_API /home/api.bcl.pemain12.com/public_html
+   chmod -R 775 /home/api.bcl.pemain12.com/backend/storage
+   chmod -R 775 /home/api.bcl.pemain12.com/backend/bootstrap/cache
+   ```
+
+7. **File `.htaccess` untuk Backend (`/home/api.bcl.pemain12.com/backend/public/.htaccess`):**
+   Gunakan file `.htaccess` bawaan Laravel yang sudah mendukung API routing:
+   ```apache
+   <IfModule mod_rewrite.c>
+       <IfModule mod_negotiation.c>
+           Options -MultiViews -Indexes
+       </IfModule>
+
+       RewriteEngine On
+
+       # Handle Authorization Header
+       RewriteCond %{HTTP:Authorization} .
+       RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+       # Redirect Trailing Slashes If Not A Folder...
+       RewriteCond %{REQUEST_FILENAME} !-d
+       RewriteCond %{REQUEST_URI} (.+)/$
+       RewriteRule ^ %1 [L,R=301]
+
+       # Send Requests To Front Controller...
+       RewriteCond %{REQUEST_FILENAME} !-d
+       RewriteCond %{REQUEST_FILENAME} !-f
+       RewriteRule ^ index.php [L]
+   </IfModule>
+   ```
+
+---
+
+### 3.3 Langkah Setup Website 2: `bcl.pemain12.com` (React Vite Frontend)
+
+1. **Buat Website di CyberPanel:**
+   - Domain: `bcl.pemain12.com`
+   - PHP: `8.3`
+   - Centang **SSL**.
+
+2. **Build Frontend dengan Endpoint `api.bcl.pemain12.com`:**
+   Di komputer lokal Anda atau di server:
+   ```bash
+   cd frontend
+
+   # Buat file .env frontend dengan URL API Subdomain
+   cat << 'EOF' > .env
+   VITE_API_BASE_URL=https://api.bcl.pemain12.com/api/v1
+   EOF
+
+   # Install & Build
+   npm ci
+   npm run build
+   ```
+
+3. **Upload Isi Folder `dist/` ke `public_html` `bcl.pemain12.com`:**
+   ```bash
+   # Bersihkan file lama di public_html
+   rm -rf /home/bcl.pemain12.com/public_html/*
+
+   # Salin hasil build dist ke public_html
+   cp -r frontend/dist/* /home/bcl.pemain12.com/public_html/
+   ```
+
+4. **Buat File `.htaccess` Khusus Frontend (`/home/bcl.pemain12.com/public_html/.htaccess`):**
+   Karena backend sudah berada di subdomain lain, file `.htaccess` di frontend menjadi **sangat sederhana** hanya untuk React Router SPA fallback dan HTTPS:
+
+   ```apache
+   <IfModule mod_rewrite.c>
+       RewriteEngine On
+       RewriteBase /
+
+       # 1. Force HTTPS
+       RewriteCond %{HTTPS} off
+       RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+       # 2. Akses langsung file fisik statis (JS, CSS, PNG, JPG, ICO, dll.)
+       RewriteCond %{REQUEST_FILENAME} -f
+       RewriteRule ^ - [L]
+
+       # 3. React Router SPA Fallback
+       RewriteCond %{REQUEST_FILENAME} !-f
+       RewriteCond %{REQUEST_FILENAME} !-d
+       RewriteRule ^ index.html [L]
+   </IfModule>
+
+   <IfModule mod_headers.c>
+       Header always set X-Frame-Options "SAMEORIGIN"
+       Header always set X-Content-Type-Options "nosniff"
+   </IfModule>
+   ```
+
+5. **Atur Permissions Frontend:**
+   ```bash
+   USER_WEB="bcl.pemain12.com"
+   chown -R $USER_WEB:$USER_WEB /home/bcl.pemain12.com/public_html
+   ```
+
+6. **Restart OpenLiteSpeed:**
+   ```bash
+   systemctl restart lsws
+   ```
+
+---
+
+### 3.4 Keuntungan Utama Arsitektur Dual Subdomain Ini:
+1. **Tidak Memerlukan Symlink Antara Frontend dan Backend:** Folder frontend dan backend terisolasi total, menghindari masalah open_basedir atau izin file silang di CyberPanel.
+2. **Foto & Media Tersimpan Rapi:** Foto bersama pemain dan avatar langsung diakses via `https://api.bcl.pemain12.com/storage/...` yang ditangani langsung oleh storage link bawaan Laravel.
+3. **Pemberian Izin CORS Otomatis:** File `backend/config/cors.php` telah dikonfigurasi untuk secara otomatis mengizinkan domain `*.pemain12.com` dan URL `FRONTEND_URL`.
+4. **Maintenance Bebas Gangguan:** Frontend dapat di-update atau di-build ulang kapan saja tanpa mengganggu proses backend, cron job, atau queue worker.
 
 ---
 

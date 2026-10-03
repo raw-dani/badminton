@@ -17,14 +17,18 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
+    'allowed_origins' => array_filter([
+        env('FRONTEND_URL', 'https://bcl.pemain12.com'),
+        'https://bcl.pemain12.com',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'http://localhost:3000',
         'http://localhost:8000',
-    ],
+    ]),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://.*\.pemain12\.com$#',
+    ],
 
     'allowed_headers' => ['*'],
 
