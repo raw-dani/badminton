@@ -42,4 +42,14 @@ class Season extends Model
     {
         return $this->hasMany(SeasonPlayerStatistic::class);
     }
+
+    public function teamSeasonScores(): HasMany
+    {
+        return $this->hasMany(TeamSeasonScore::class);
+    }
+
+    public function teamWars(): HasMany
+    {
+        return $this->hasMany(TeamWar::class);
+    }
 }

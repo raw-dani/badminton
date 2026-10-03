@@ -67,7 +67,12 @@ class TeamController extends Controller
         $user = Auth::user();
         $membership = TeamMember::where('user_id', $user->id)
             ->where('status', 'ACTIVE')
-            ->with(['team.creator.profile', 'team.activeMembers.user.profile', 'team.activeMembers.user.pointBalance'])
+            ->with([
+                'team.creator.profile',
+                'team.activeMembers.user.profile',
+                'team.activeMembers.user.pointBalance',
+                'team.currentSeasonScore',
+            ])
             ->first();
 
         if (!$membership || !$membership->team) {

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\PlayerProfileController;
 use App\Http\Controllers\Api\V1\PointController;
 use App\Http\Controllers\Api\V1\SeasonController;
 use App\Http\Controllers\Api\V1\TeamController;
+use App\Http\Controllers\Api\V1\TeamWarController;
 use Illuminate\Support\Facades\Route;
 
 // Health check endpoint
@@ -53,8 +54,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/matches/{id}', [MatchController::class, 'show'])->whereNumber('id');
     Route::get('/matches/{id}/history', [MatchController::class, 'history'])->whereNumber('id');
 
-    // Public teams browse
+    // Public teams browse & leaderboard
     Route::get('/teams', [TeamController::class, 'index']);
+    Route::get('/teams/leaderboard', [TeamWarController::class, 'leaderboard']);
     Route::get('/teams/{id}', [TeamController::class, 'show'])->whereNumber('id');
 
     // -------------------------------------------------------------
@@ -93,6 +95,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/teams/{id}/leave', [TeamController::class, 'leave'])->whereNumber('id');
         Route::put('/teams/{id}/members/{memberId}/role', [TeamController::class, 'changeMemberRole'])->whereNumber('id')->whereNumber('memberId');
         Route::delete('/teams/{id}/members/{memberId}', [TeamController::class, 'kickMember'])->whereNumber('id')->whereNumber('memberId');
+
+        // Team Wars & Challenges
+        Route::get('/teams/wars', [TeamWarController::class, 'index']);
+        Route::get('/teams/wars/{id}', [TeamWarController::class, 'show'])->whereNumber('id');
+        Route::post('/teams/wars', [TeamWarController::class, 'store']);
+        Route::post('/teams/wars/{id}/accept', [TeamWarController::class, 'accept'])->whereNumber('id');
+        Route::post('/teams/wars/{id}/reject', [TeamWarController::class, 'reject'])->whereNumber('id');
+        Route::post('/teams/wars/{id}/cancel', [TeamWarController::class, 'cancel'])->whereNumber('id');
+        Route::put('/teams/wars/{id}/schedule', [TeamWarController::class, 'updateSchedule'])->whereNumber('id');
+        Route::post('/teams/wars/{id}/matches', [TeamWarController::class, 'createMatch'])->whereNumber('id');
 
         // Matches workflow
         Route::post('/matches', [MatchController::class, 'store']);

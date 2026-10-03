@@ -13,6 +13,8 @@ use App\Models\Referral;
 use App\Models\Season;
 use App\Models\SeasonPlayerStatistic;
 use App\Models\TeamMember;
+use App\Models\TeamSeasonScore;
+use App\Models\TeamWar;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -404,6 +406,94 @@ class MatchResultService
                         $seasonStat->increment('wins');
                     } else {
                         $seasonStat->increment('losses');
+                    }
+                }
+            }
+
+            // -----------------------------------------------------------------
+            // Team Score Processing (Season-based) - Requirements 4 & 5
+            // -----------------------------------------------------------------
+            $activeSeasonId = $seasonId ?? Season::where('is_active', true)->value('id');
+
+            if ($lockedMatch->team_war_id) {
+                // WAR TEAM MATCH:
+                // "setiap pertandingan yang dimainkan team dalam war jika menang tiap pertandingan akan +5 jika kalah -1"
+                $teamWar = TeamWar::find($lockedMatch->team_war_id);
+                if ($teamWar && $activeSeasonId) {
+                    $winningSide = $lockedMatch->winning_team; // 'TEAM_A' or 'TEAM_B'
+                    $winningTeamId = ($winningSide === 'TEAM_A') ? $lockedMatch->team_a_team_id : $lockedMatch->team_b_team_id;
+                    $losingTeamId = ($winningSide === 'TEAM_A') ? $lockedMatch->team_b_team_id : $lockedMatch->team_a_team_id;
+
+                    if ($winningTeamId) {
+                        $winScore = TeamSeasonScore::firstOrCreate(
+                            ['team_id' => $winningTeamId, 'season_id' => $activeSeasonId],
+                            ['score' => 0, 'matches_played' => 0, 'regular_points' => 0, 'war_matches_played' => 0, 'war_wins' => 0, 'war_losses' => 0, 'war_points' => 0]
+                        );
+                        $winScore->increment('score', 5);
+                        $winScore->increment('war_points', 5);
+                        $winScore->increment('war_wins', 1);
+                        $winScore->increment('war_matches_played', 1);
+                    }
+
+                    if ($losingTeamId) {
+                        $loseScore = TeamSeasonScore::firstOrCreate(
+                            ['team_id' => $losingTeamId, 'season_id' => $activeSeasonId],
+                            ['score' => 0, 'matches_played' => 0, 'regular_points' => 0, 'war_matches_played' => 0, 'war_wins' => 0, 'war_losses' => 0, 'war_points' => 0]
+                        );
+                        $loseScore->decrement('score', 1);
+                        $loseScore->decrement('war_points', 1);
+                        $loseScore->increment('war_losses', 1);
+                        $loseScore->increment('war_matches_played', 1);
+                    }
+
+                    // Update War match scores
+                    if ($winningTeamId === $teamWar->challenger_team_id) {
+                        $teamWar->increment('challenger_score');
+                    } elseif ($winningTeamId === $teamWar->challenged_team_id) {
+                        $teamWar->increment('challenged_score');
+                    }
+
+                    // Check if all war matches are completed
+                    $completedWarMatches = GameMatch::where('team_war_id', $teamWar->id)
+                        ->where('status', 'COMPLETED')
+                        ->count() + 1; // + 1 for current match being marked completed
+
+                    if ($completedWarMatches >= $teamWar->total_matches) {
+                        $teamWar->status = 'COMPLETED';
+                        $teamWar->completed_at = now();
+                        if ($teamWar->challenger_score > $teamWar->challenged_score) {
+                            $teamWar->winner_team_id = $teamWar->challenger_team_id;
+                        } elseif ($teamWar->challenged_score > $teamWar->challenger_score) {
+                            $teamWar->winner_team_id = $teamWar->challenged_team_id;
+                        }
+                        $teamWar->save();
+                    } else {
+                        if ($teamWar->status === 'ACCEPTED') {
+                            $teamWar->status = 'IN_PROGRESS';
+                            $teamWar->save();
+                        }
+                    }
+                }
+            } else {
+                // REGULAR MATCH (Not War):
+                // "score team akan bertambah jika salah satu angotanya mejalani pertandingan baik itu menang atau kalah akan bertambah 3 poin"
+                if ($activeSeasonId) {
+                    $playerUserIds = $lockedMatch->matchPlayers->pluck('user_id')->all();
+                    $distinctTeamIds = TeamMember::whereIn('user_id', $playerUserIds)
+                        ->where('status', 'ACTIVE')
+                        ->pluck('team_id')
+                        ->unique()
+                        ->filter()
+                        ->all();
+
+                    foreach ($distinctTeamIds as $tId) {
+                        $tScore = TeamSeasonScore::firstOrCreate(
+                            ['team_id' => $tId, 'season_id' => $activeSeasonId],
+                            ['score' => 0, 'matches_played' => 0, 'regular_points' => 0, 'war_matches_played' => 0, 'war_wins' => 0, 'war_losses' => 0, 'war_points' => 0]
+                        );
+                        $tScore->increment('score', 3);
+                        $tScore->increment('regular_points', 3);
+                        $tScore->increment('matches_played', 1);
                     }
                 }
             }

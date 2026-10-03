@@ -139,6 +139,7 @@ export interface GameMatch {
   match_players?: MatchPlayer[]
   current_scores?: MatchScore[]
   scores?: MatchScore[]
+  match_scores?: MatchScore[]
   score_versions?: MatchScoreVersion[]
   current_approvals?: MatchScoreApproval[]
   approvals?: MatchScoreApproval[]
@@ -288,6 +289,47 @@ export interface Team {
   active_members?: TeamMember[]
   active_members_count?: number
   current_user_role?: 'LEADER' | 'ADMIN' | 'MEMBER'
+  current_season_score?: TeamSeasonScore | null
+}
+
+export interface TeamSeasonScore {
+  id: number
+  team_id: number
+  season_id: number
+  score: number
+  matches_played: number
+  regular_points: number
+  war_matches_played: number
+  war_wins: number
+  war_losses: number
+  war_points: number
+  created_at?: string
+  team?: Team
+}
+
+export interface TeamWar {
+  id: number
+  war_code: string
+  season_id?: number | null
+  challenger_team_id: number
+  challenged_team_id: number
+  created_by_user_id: number
+  total_matches: number
+  scheduled_at?: string | null
+  venue?: string | null
+  notes?: string | null
+  challenger_score: number
+  challenged_score: number
+  winner_team_id?: number | null
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+  accepted_at?: string | null
+  completed_at?: string | null
+  created_at: string
+  challenger_team?: Team
+  challenged_team?: Team
+  winner_team?: Team
+  creator?: User
+  matches?: GameMatch[]
 }
 
 export interface TeamMessage {

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Team extends Model
 {
@@ -62,5 +63,26 @@ class Team extends Model
             ->where('user_id', $userId)
             ->whereIn('role', ['LEADER', 'ADMIN'])
             ->exists();
+    }
+
+    public function seasonScores(): HasMany
+    {
+        return $this->hasMany(TeamSeasonScore::class);
+    }
+
+    public function currentSeasonScore(): HasOne
+    {
+        $activeSeasonId = Season::where('is_active', true)->value('id');
+        return $this->hasOne(TeamSeasonScore::class)->where('season_id', $activeSeasonId);
+    }
+
+    public function warsAsChallenger(): HasMany
+    {
+        return $this->hasMany(TeamWar::class, 'challenger_team_id');
+    }
+
+    public function warsAsChallenged(): HasMany
+    {
+        return $this->hasMany(TeamWar::class, 'challenged_team_id');
     }
 }

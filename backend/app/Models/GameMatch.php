@@ -34,6 +34,9 @@ class GameMatch extends Model
         'dispute_reason',
         'disputed_by',
         'admin_resolution_note',
+        'team_war_id',
+        'team_a_team_id',
+        'team_b_team_id',
     ];
 
     protected $appends = ['current_scores', 'current_approvals'];
@@ -47,6 +50,21 @@ class GameMatch extends Model
             'points_awarded' => 'boolean',
             'points_awarded_at' => 'datetime',
         ];
+    }
+
+    public function teamWar(): BelongsTo
+    {
+        return $this->belongsTo(TeamWar::class, 'team_war_id');
+    }
+
+    public function teamA(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'team_a_team_id');
+    }
+
+    public function teamB(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'team_b_team_id');
     }
 
     public function season(): BelongsTo
