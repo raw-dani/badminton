@@ -16,6 +16,7 @@ class MatchScoreVersion extends Model
         'submitted_by',
         'winning_team',
         'summary',
+        'match_photo_url',
         'sets_data',
     ];
 

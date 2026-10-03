@@ -111,9 +111,9 @@ class MatchResultService
      * Validate scores and create a new score version.
      * Resets all approvals from previous versions.
      */
-    public function submitScore(GameMatch $match, int $submitterId, array $sets): MatchScoreVersion
+    public function submitScore(GameMatch $match, int $submitterId, array $sets, ?string $photoUrl = null): MatchScoreVersion
     {
-        return DB::transaction(function () use ($match, $submitterId, $sets) {
+        return DB::transaction(function () use ($match, $submitterId, $sets, $photoUrl) {
             $lockedMatch = GameMatch::where('id', $match->id)->lockForUpdate()->first();
 
             if (!$lockedMatch->isPlayerInMatch($submitterId)) {
@@ -134,6 +134,9 @@ class MatchResultService
             $lockedMatch->current_score_version = $newVersion;
             $lockedMatch->winning_team = $winningTeam;
             $lockedMatch->status = 'WAITING_APPROVAL';
+            if ($photoUrl) {
+                $lockedMatch->match_photo_url = $photoUrl;
+            }
             $lockedMatch->save();
 
             // Save individual set scores
@@ -154,6 +157,7 @@ class MatchResultService
                 'submitted_by' => $submitterId,
                 'winning_team' => $winningTeam,
                 'summary' => $summary,
+                'match_photo_url' => $photoUrl,
                 'sets_data' => $sets,
             ]);
 

@@ -90,6 +90,7 @@ export interface MatchScoreVersion {
   submitted_by: number
   winning_team: 'TEAM_A' | 'TEAM_B'
   summary: string
+  match_photo_url?: string | null
   sets_data: Array<{
     set_number: number
     team_a_score: number
@@ -97,6 +98,15 @@ export interface MatchScoreVersion {
   }>
   submitter?: User
   created_at: string
+}
+
+export interface MatchComment {
+  id: number
+  match_id: number
+  user_id: number
+  comment: string
+  created_at: string
+  user?: User
 }
 
 export interface MatchInvitation {
@@ -124,6 +134,7 @@ export interface GameMatch {
   scheduled_at: string
   description?: string | null
   live_stream_url?: string | null
+  match_photo_url?: string | null
   status: 'PENDING_ACCEPTANCE' | 'READY' | 'IN_PROGRESS' | 'WAITING_APPROVAL' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED' | 'REJECTED'
   winning_team?: 'TEAM_A' | 'TEAM_B' | null
   current_score_version: number
@@ -144,6 +155,7 @@ export interface GameMatch {
   current_approvals?: MatchScoreApproval[]
   approvals?: MatchScoreApproval[]
   invitations?: MatchInvitation[]
+  comments?: MatchComment[]
   point_transactions?: PointTransaction[]
   created_at: string
 }

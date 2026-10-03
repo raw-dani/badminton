@@ -23,7 +23,12 @@ export const MatchListPage: React.FC = () => {
     if (status) params.append('status', status)
     if (type) params.append('type', type)
     if (mode) params.append('mode', mode)
-    if (myMatches) params.append('my_matches', 'true')
+    if (myMatches) {
+      params.append('my_matches', 'true')
+      if (user?.id) {
+        params.append('user_id', user.id.toString())
+      }
+    }
     params.append('page', page.toString())
     params.append('per_page', '12')
 

@@ -24,6 +24,7 @@ class GameMatch extends Model
         'scheduled_at',
         'description',
         'live_stream_url',
+        'match_photo_url',
         'status',
         'winning_team',
         'current_score_version',
@@ -183,5 +184,10 @@ class GameMatch extends Model
         $playerIds = $players->pluck('user_id')->all();
 
         return count(array_intersect($playerIds, $approvals)) === $expectedCount;
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(MatchComment::class, 'match_id')->orderBy('created_at', 'asc');
     }
 }

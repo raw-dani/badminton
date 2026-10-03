@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AffiliateController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\LeaderboardController;
+use App\Http\Controllers\Api\V1\MatchCommentController;
 use App\Http\Controllers\Api\V1\MatchController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PlayerProfileController;
@@ -49,10 +50,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/seasons/active', [SeasonController::class, 'active']);
     Route::get('/seasons/{id}/leaderboards', [SeasonController::class, 'leaderboards'])->whereNumber('id');
 
-    // Public matches browse
+    // Public matches browse & comments
     Route::get('/matches', [MatchController::class, 'index']);
     Route::get('/matches/{id}', [MatchController::class, 'show'])->whereNumber('id');
     Route::get('/matches/{id}/history', [MatchController::class, 'history'])->whereNumber('id');
+    Route::get('/matches/{id}/comments', [MatchCommentController::class, 'index'])->whereNumber('id');
 
     // Public teams browse & leaderboard
     Route::get('/teams', [TeamController::class, 'index']);
@@ -114,6 +116,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/matches/{id}/score', [MatchController::class, 'submitScore'])->whereNumber('id');
         Route::post('/matches/{id}/approve', [MatchController::class, 'approveScore'])->whereNumber('id');
         Route::post('/matches/{id}/dispute', [MatchController::class, 'disputeScore'])->whereNumber('id');
+        Route::post('/matches/{id}/comments', [MatchCommentController::class, 'store'])->whereNumber('id');
+        Route::delete('/matches/{id}/comments/{commentId}', [MatchCommentController::class, 'destroy'])->whereNumber('id')->whereNumber('commentId');
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);

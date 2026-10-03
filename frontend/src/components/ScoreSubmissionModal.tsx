@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, AlertCircle, CheckCircle2, Trophy } from 'lucide-react'
+import { X, AlertCircle, CheckCircle2, Trophy, Camera, Upload, Trash2 } from 'lucide-react'
 import api from '../lib/api'
 import type { GameMatch, ApiResponse } from '../types'
 
@@ -27,6 +27,8 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
     { set_number: 2, team_a_score: 21, team_b_score: 16 },
   ])
   const [hasThirdSet, setHasThirdSet] = useState<boolean>(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(match.match_photo_url || null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,6 +40,28 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
 
   const teamANames = teamAPlayers.map((p) => p.user?.name ?? 'Player A').join(' & ')
   const teamBNames = teamBPlayers.map((p) => p.user?.name ?? 'Player B').join(' & ')
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      if (!file.type.startsWith('image/')) {
+        setError('Format file harus berupa gambar (JPG, PNG, atau WebP).')
+        return
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Ukuran file gambar maksimal 10MB.')
+        return
+      }
+      setPhotoFile(file)
+      setPhotoPreview(URL.createObjectURL(file))
+      setError(null)
+    }
+  }
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null)
+    setPhotoPreview(null)
+  }
 
   const handleScoreChange = (
     setIndex: number,
@@ -78,11 +102,30 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Wajib upload foto bersama untuk para pemain
+    if (!photoFile && !photoPreview) {
+      setError('Wajib mengunggah 1 foto bersama untuk para pemain setelah pertandingan!')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
-      const res = await api.post<ApiResponse>(`/matches/${match.id}/score`, { sets })
+      const formData = new FormData()
+      formData.append('sets', JSON.stringify(sets))
+      if (photoFile) {
+        formData.append('match_photo', photoFile)
+      } else if (photoPreview) {
+        formData.append('match_photo_url', photoPreview)
+      }
+
+      const res = await api.post<ApiResponse>(`/matches/${match.id}/score`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
       if (res.data.success) {
         onSuccess()
         onClose()
@@ -192,6 +235,66 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
                 {hasThirdSet ? 'Remove 3rd Set' : '+ Add Deciding 3rd Set'}
               </button>
             </div>
+          </div>
+
+          {/* Mandatory Match Photo Upload */}
+          <div className="space-y-2 p-4 rounded-xl bg-slate-900/60 border border-white/10">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                <Camera className="w-4 h-4 text-brand-400" />
+                Foto Bersama Pemain <span className="text-rose-400">*Wajib</span>
+              </label>
+              <span className="text-[11px] text-slate-400">JPG, PNG, WebP (maks. 10MB)</span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Wajib mengunggah 1 foto bersama seluruh pemain di lapangan sebagai verifikasi pertandingan.
+            </p>
+
+            {photoPreview ? (
+              <div className="relative mt-2 rounded-xl overflow-hidden border border-white/15 bg-black/40 group max-h-52 flex items-center justify-center">
+                <img
+                  src={photoPreview}
+                  alt="Foto Bersama Pemain"
+                  className="w-full h-48 object-cover rounded-xl"
+                />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                    <Upload className="w-3.5 h-3.5" /> Ganti Foto
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/jpg, image/webp"
+                      className="hidden"
+                      onChange={handlePhotoChange}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="px-3 py-1.5 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-white/20 hover:border-brand-500/60 rounded-xl p-5 cursor-pointer bg-[#0a0f1d] hover:bg-brand-500/[0.03] transition-all group">
+                <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-bold text-white group-hover:text-brand-400 transition-colors">
+                  Klik untuk Unggah Foto Bersama Pemain
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Ambil foto bersama semua pemain di lapangan pertandingan
+                </span>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+              </label>
+            )}
           </div>
 
           {/* Winner Prediction Banner */}

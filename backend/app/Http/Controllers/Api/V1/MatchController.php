@@ -47,10 +47,24 @@ class MatchController extends Controller
         ])
         ->orderByDesc('scheduled_at');
 
-        if ($myMatches && Auth::check()) {
-            $userId = Auth::id();
-            $query->whereHas('matchPlayers', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
+        $user = $request->user('sanctum') ?? Auth::user();
+
+        if ($myMatches) {
+            $userId = $user?->id ?? ($request->query('user_id') ? (int) $request->query('user_id') : null);
+            if (!$userId) {
+                return $this->success([
+                    'data' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                ], 'Silakan login untuk melihat pertandingan Anda.');
+            }
+
+            $query->where(function ($q) use ($userId) {
+                $q->where('creator_id', $userId)
+                  ->orWhereHas('matchPlayers', function ($pq) use ($userId) {
+                      $pq->where('user_id', $userId);
+                  });
             });
         }
 
@@ -306,6 +320,7 @@ class MatchController extends Controller
             'currentApprovals.user',
             'invitations.invitedUser',
             'pointTransactions.user',
+            'comments.user.profile',
         ])->findOrFail($id);
 
         return $this->success($match, 'Match details retrieved successfully');
@@ -415,18 +430,41 @@ class MatchController extends Controller
     {
         $match = GameMatch::with('matchPlayers')->findOrFail($id);
 
+        if (is_string($request->input('sets'))) {
+            $decoded = json_decode($request->input('sets'), true);
+            if (is_array($decoded)) {
+                $request->merge(['sets' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'sets' => ['required', 'array', 'min:2', 'max:3'],
             'sets.*.set_number' => ['required', 'integer', 'between:1,3'],
             'sets.*.team_a_score' => ['required', 'integer', 'min:0', 'max:30'],
             'sets.*.team_b_score' => ['required', 'integer', 'min:0', 'max:30'],
+            'match_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
+            'match_photo_url' => ['nullable', 'string', 'max:500'],
         ]);
+
+        // Requirement 1: ketika Submit Match Score wajib juga upload 1 foto bersama untuk para pemain
+        if (!$request->hasFile('match_photo') && !$request->filled('match_photo_url')) {
+            return $this->error('Wajib mengunggah 1 foto bersama untuk para pemain setelah pertandingan.', 422);
+        }
+
+        $photoUrl = null;
+        if ($request->hasFile('match_photo')) {
+            $path = $request->file('match_photo')->store('match_photos', 'public');
+            $photoUrl = '/storage/' . $path;
+        } elseif ($request->filled('match_photo_url')) {
+            $photoUrl = $request->input('match_photo_url');
+        }
 
         try {
             $versionRecord = $this->matchResultService->submitScore(
                 match: $match,
                 submitterId: Auth::id(),
-                sets: $validated['sets']
+                sets: $validated['sets'],
+                photoUrl: $photoUrl
             );
 
             $match->refresh()->load([
@@ -434,12 +472,13 @@ class MatchController extends Controller
                 'currentScores',
                 'currentApprovals.user',
                 'scoreVersions',
+                'comments.user.profile',
             ]);
 
             return $this->success([
                 'match' => $match,
                 'version' => $versionRecord,
-            ], 'Score submitted successfully and awaiting participant approvals.');
+            ], 'Skor pertandingan dan foto bersama pemain berhasil disubmit, menunggu persetujuan lawan.');
         } catch (InvalidArgumentException $e) {
             return $this->error($e->getMessage(), 422);
         }

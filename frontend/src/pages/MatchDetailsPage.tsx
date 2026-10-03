@@ -14,6 +14,10 @@ import {
   History,
   Tv,
   ExternalLink,
+  MessageSquare,
+  Send,
+  Trash2,
+  Camera,
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import api from '../lib/api'
@@ -22,7 +26,7 @@ import { useLanguage } from '../context/LanguageContext'
 import { formatFullDate, getInitials, getStatusBadgeClass } from '../lib/utils'
 import { ScoreSubmissionModal } from '../components/ScoreSubmissionModal'
 import { DisputeModal } from '../components/DisputeModal'
-import type { GameMatch, ApiResponse } from '../types'
+import type { GameMatch, ApiResponse, MatchComment } from '../types'
 
 export const MatchDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -34,9 +38,67 @@ export const MatchDetailsPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Comments state
+  const [comments, setComments] = useState<MatchComment[]>([])
+  const [loadingComments, setLoadingComments] = useState<boolean>(false)
+  const [newComment, setNewComment] = useState<string>('')
+  const [submittingComment, setSubmittingComment] = useState<boolean>(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
+
   // Modals state
   const [isScoreModalOpen, setIsScoreModalOpen] = useState<boolean>(false)
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState<boolean>(false)
+
+  const fetchComments = async () => {
+    try {
+      setLoadingComments(true)
+      const res = await api.get<ApiResponse<MatchComment[]>>(`/matches/${id}/comments`)
+      if (res.data.success && res.data.data) {
+        setComments(res.data.data)
+      }
+    } catch (err) {
+      console.error('Failed to load comments:', err)
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+
+    setSubmittingComment(true)
+    setCommentError(null)
+
+    try {
+      const res = await api.post<ApiResponse<MatchComment>>(`/matches/${id}/comments`, {
+        comment: newComment.trim(),
+      })
+      if (res.data.success && res.data.data) {
+        setComments((prev) => [res.data.data, ...prev])
+        setNewComment('')
+      }
+    } catch (err: any) {
+      setCommentError(
+        err.response?.data?.message || 'Gagal mengirim komentar. Mohon gunakan bahasa yang sopan tanpa kata-kata kasar atau rasis.'
+      )
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!window.confirm('Yakin ingin menghapus komentar ini?')) return
+
+    try {
+      const res = await api.delete<ApiResponse>(`/matches/${id}/comments/${commentId}`)
+      if (res.data.success) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId))
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal menghapus komentar.')
+    }
+  }
 
   const fetchMatchDetails = async () => {
     try {
@@ -55,6 +117,7 @@ export const MatchDetailsPage: React.FC = () => {
 
   useEffect(() => {
     fetchMatchDetails()
+    fetchComments()
   }, [id])
 
   if (loading) {
@@ -462,6 +525,26 @@ export const MatchDetailsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Match Documentation Photo */}
+      {match.match_photo_url && (
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+              <Camera className="w-5 h-5 text-brand-400" />
+              Foto Bersama Pemain
+            </h3>
+            <span className="text-xs text-slate-400">Dokumentasi & Bukti Pertandingan</span>
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40 max-h-[500px] flex items-center justify-center p-2">
+            <img
+              src={match.match_photo_url}
+              alt="Foto Bersama Pemain"
+              className="w-full h-auto max-h-[480px] object-contain rounded-xl shadow-lg"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Verification & Approvals Hub (Unanimous Approval Engine) */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -590,6 +673,145 @@ export const MatchDetailsPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Match Comments Section for Completed Matches */}
+      {match.status === 'COMPLETED' && (
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-brand-400" />
+                Komentar Pertandingan ({comments.length})
+              </h3>
+              <p className="text-xs text-slate-400">
+                Diskusikan jalannya pertandingan atau berikan apresiasi kepada para pemain.
+              </p>
+            </div>
+            <span className="text-xs text-slate-400">
+              Terbuka untuk semua anggota terdaftar
+            </span>
+          </div>
+
+          {/* Polite Language Guideline Alert */}
+          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-start gap-3 text-blue-300 text-xs leading-relaxed">
+            <span className="text-base leading-none">💬</span>
+            <span>
+              <strong>Tata Tertib Komentar:</strong> Mohon selalu berkomentar dengan sopan dan sportif. Sistem akan secara otomatis menyaring serta menolak kata-kata kasar, makian, pornografi, ujaran kebencian, atau rasisme.
+            </span>
+          </div>
+
+          {/* Comment Form */}
+          {user ? (
+            <form onSubmit={handleCommentSubmit} className="space-y-3">
+              {commentError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-start gap-2.5 text-rose-300 text-xs">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{commentError}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Tulis tanggapan atau ucapan selamat kepada para pemain..."
+                  rows={3}
+                  maxLength={1000}
+                  className="w-full bg-[#0a0f1d] border border-white/15 focus:border-brand-500 rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors resize-none"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {newComment.length}/1000 karakter
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={submittingComment || !newComment.trim()}
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-brand-500/20 transition-all flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    {submittingComment ? 'Mengirim...' : 'Kirim Komentar'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-white/10 text-center text-xs text-slate-400">
+              Silakan <Link to="/login" className="text-brand-400 font-bold underline">Masuk (Login)</Link> untuk meninggalkan komentar pada pertandingan ini.
+            </div>
+          )}
+
+          {/* Comments List */}
+          <div className="space-y-3 pt-2">
+            {loadingComments ? (
+              <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
+                Memuat komentar...
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400 bg-[#0a0f1d] rounded-2xl border border-white/5">
+                Belum ada komentar. Jadilah yang pertama memberikan apresiasi atas pertandingan seru ini!
+              </div>
+            ) : (
+              comments.map((c) => {
+                const isMatchPlayer = match.match_players?.some((p) => p.user_id === c.user_id)
+                const playerRole = match.match_players?.find((p) => p.user_id === c.user_id)
+                const canDelete = user && (user.id === c.user_id || user.role === 'admin')
+
+                return (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-2xl bg-[#0a0f1d] border border-white/10 space-y-2 hover:border-white/20 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
+                          {c.user?.profile?.avatar_url ? (
+                            <img src={c.user.profile.avatar_url} alt={c.user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            getInitials(c.user?.name)
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-white">{c.user?.name}</span>
+                            {isMatchPlayer && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-300 border border-brand-500/30">
+                                Pemain ({playerRole?.team === 'TEAM_A' ? 'Tim A' : 'Tim B'})
+                              </span>
+                            )}
+                            {c.user?.role === 'admin' && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            @{c.user?.username} • {formatFullDate(c.created_at)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDeleteComment(c.id)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Hapus komentar"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-200 leading-relaxed pl-11 whitespace-pre-line">
+                      {c.comment}
+                    </p>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
       )}
