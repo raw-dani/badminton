@@ -1,47 +1,437 @@
 # Badminton Champion League - Deployment & Production Guide
 
+Dokumen ini berisi panduan komprehensif untuk melakukan deployment aplikasi **Badminton Champion League (BCL)** ke server produksi, dengan fokus khusus pada control panel **CyberPanel (OpenLiteSpeed)** menggunakan subdomain **`bcl.pemain12.com`**, serta panduan alternatif untuk web server Nginx.
+
+---
+
 ## 1. Production Architecture Overview
 
 ```
                       [ Internet / HTTPS ]
-                               │
-                               ▼
-                   ┌───────────────────────┐
-                   │   Nginx (SSL / HTTP2)  │
-                   └───────────┬───────────┘
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-       [ Static Frontend ]             [ Reverse Proxy ]
-       /var/www/bcl/frontend/dist      http://127.0.0.1:9000 (PHP-FPM)
-                                               │
-                                               ▼
-                                      [ Laravel 11 Backend ]
-                                      /var/www/bcl/backend
-                                               │
-                                  ┌────────────┴────────────┐
-                                  ▼                         ▼
-                          [ MySQL 8.0 ]               [ Redis 7.x ]
-                          (InnoDB, ACID)              (Queue & Cache)
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  CyberPanel / OLS     │
+                    │  (bcl.pemain12.com)   │
+                    └───────────┬───────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                ▼                               ▼
+        [ Static Frontend ]             [ Laravel API ]
+        React Vite SPA                  PHP 8.3 (LSPHP)
+        /public_html                    /backend/public
+                │                               │
+                └───────────────┬───────────────┘
+                                │
+                                ▼
+                       [ MySQL 8.0 Database ]
+                       [ Redis 7.x Queue/Cache ]
 ```
 
 ---
 
-## 2. Nginx Configuration (`/etc/nginx/sites-available/bcl.conf`)
+## 2. Panduan Instalasi di CyberPanel (Subdomain: `bcl.pemain12.com`)
+
+### 2.1 Persiapan Sistem & Prasyarat CyberPanel
+Pastikan server CyberPanel Anda telah terpasang paket berikut:
+1. **PHP 8.3 (LSPHP83):**
+   ```bash
+   # Install ekstensi PHP 8.3 yang diperlukan melalui terminal SSH:
+   apt-get install -y lsphp83 lsphp83-common lsphp83-mysql lsphp83-opcache \
+   lsphp83-curl lsphp83-mbstring lsphp83-gd lsphp83-zip lsphp83-bcmath \
+   lsphp83-intl lsphp83-redis
+   ```
+2. **Composer (Global):**
+   ```bash
+   php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+   php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+   rm composer-setup.php
+   ```
+3. **Node.js (v18+ atau v20+) & NPM:**
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+   apt-get install -y nodejs
+   ```
+4. **Redis Server (Opsional tapi direkomendasikan untuk Queue & Cache):**
+   ```bash
+   apt-get install -y redis-server
+   systemctl enable --now redis-server
+   ```
+
+---
+
+### 2.2 Langkah 1: Buat Website / Child Domain di CyberPanel
+1. Buka dashboard CyberPanel Anda (`https://IP_SERVER:8090`).
+2. Masuk ke menu **Websites** > **Create Website**:
+   - **Select Package:** Default
+   - **Select Owner:** admin (atau user yang Anda inginkan)
+   - **Domain Name:** `bcl.pemain12.com` *(Jika `pemain12.com` sudah ada, Anda juga dapat menggunakan menu **Websites** > **Create Child Domain** dengan memilih master domain `pemain12.com` dan subdomain `bcl`)*.
+   - **Email:** `admin@pemain12.com`
+   - **Select PHP:** `PHP 8.3`
+   - **Additional Features:** Centang **SSL**, **open_basedir Protection**.
+3. Klik **Create Website**.
+4. Path root website Anda di server biasanya berada di:
+   ```bash
+   /home/bcl.pemain12.com/public_html
+   # ATAU (jika sebagai child domain):
+   /home/pemain12.com/bcl.pemain12.com
+   ```
+   *(Untuk panduan di bawah, kita asumsikan path root adalah `/home/bcl.pemain12.com`)*.
+
+---
+
+### 2.3 Langkah 2: Buat Database MySQL di CyberPanel
+1. Masuk ke CyberPanel > **Databases** > **Create Database**.
+2. Pilih domain: `bcl.pemain12.com`.
+3. Masukkan rincian:
+   - **Database Name:** `bcl_db` (nama database lengkap: `bcl_db` atau `admin_bcl_db`)
+   - **Username:** `bcl_user` (username lengkap: `bcl_user` atau `admin_bcl_user`)
+   - **Password:** *Buat password yang kuat dan simpan untuk file `.env`*.
+4. Klik **Create Database**.
+
+---
+
+### 2.4 Langkah 3: Clone / Upload Source Code Aplikasi
+Masuk ke terminal server Anda melalui SSH dan jalankan perintah:
+
+```bash
+# 1. Masuk ke direktori home domain
+cd /home/bcl.pemain12.com
+
+# 2. Clone repositori ke folder aplikasi
+git clone https://github.com/raw-dani/badminton.git app_src
+
+# 3. Pindahkan folder backend dan frontend ke posisi yang rapi
+mv app_src/backend ./backend
+mv app_src/frontend ./frontend
+rm -rf app_src
+```
+
+Struktur folder akhir yang direkomendasikan di `/home/bcl.pemain12.com`:
+```text
+/home/bcl.pemain12.com/
+├── backend/                  <-- Aplikasi Laravel 11
+│   ├── app/
+│   ├── bootstrap/
+│   ├── database/
+│   ├── storage/
+│   ├── .env
+│   └── ...
+├── frontend/                 <-- Source code React Vite
+│   ├── src/
+│   ├── dist/                 <-- Output build frontend
+│   └── ...
+└── public_html/              <-- Live Document Root OpenLiteSpeed
+    ├── index.html            <-- Entry file React SPA
+    ├── assets/               <-- File CSS, JS, dan gambar frontend
+    ├── api                   <-- Symlink ke /home/bcl.pemain12.com/backend/public
+    ├── storage               <-- Symlink ke /home/bcl.pemain12.com/backend/storage/app/public
+    └── .htaccess             <-- Routing OpenLiteSpeed
+```
+
+---
+
+### 2.5 Langkah 4: Konfigurasi Backend Laravel
+Masuk ke direktori `backend` dan atur file environment:
+
+```bash
+cd /home/bcl.pemain12.com/backend
+
+# Copy file .env.example
+cp .env.example .env
+
+# Edit file .env menggunakan nano atau vi
+nano .env
+```
+
+Sesuaikan konfigurasi kunci pada `/home/bcl.pemain12.com/backend/.env`:
+```ini
+APP_NAME="Badminton Champion League"
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_URL=https://bcl.pemain12.com
+
+# URL Frontend untuk CORS & Sanctum
+FRONTEND_URL=https://bcl.pemain12.com
+SANCTUM_STATEFUL_DOMAINS=bcl.pemain12.com
+SESSION_DOMAIN=.pemain12.com
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=error
+
+# Konfigurasi Database (sesuai yang dibuat di CyberPanel)
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nama_database_anda
+DB_USERNAME=nama_user_database_anda
+DB_PASSWORD=password_database_anda
+
+# Queue & Cache Driver
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=public
+QUEUE_CONNECTION=database
+CACHE_STORE=file
+SESSION_DRIVER=database
+
+# Jika menggunakan Redis:
+# QUEUE_CONNECTION=redis
+# CACHE_STORE=redis
+# REDIS_HOST=127.0.0.1
+# REDIS_PORT=6379
+```
+
+Lakukan instalasi dependensi backend dan migrasi database:
+```bash
+cd /home/bcl.pemain12.com/backend
+
+# 1. Install dependensi via Composer
+/usr/local/lsws/lsphp83/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader
+
+# 2. Generate Application Key
+/usr/local/lsws/lsphp83/bin/php artisan key:generate --force
+
+# 3. Jalankan Migrasi Database & Seeder
+/usr/local/lsws/lsphp83/bin/php artisan migrate --force
+/usr/local/lsws/lsphp83/bin/php artisan db:seed --force
+
+# 4. Buat Storage Link Laravel
+/usr/local/lsws/lsphp83/bin/php artisan storage:link
+
+# 5. Optimasi Cache Laravel
+/usr/local/lsws/lsphp83/bin/php artisan config:cache
+/usr/local/lsws/lsphp83/bin/php artisan route:cache
+/usr/local/lsws/lsphp83/bin/php artisan view:cache
+```
+
+---
+
+### 2.6 Langkah 5: Build dan Deploy Frontend React Vite
+Masuk ke direktori `frontend`, konfigurasikan file `.env` produksi, lalu build:
+
+```bash
+cd /home/bcl.pemain12.com/frontend
+
+# 1. Buat file .env produksi untuk frontend
+cat << 'EOF' > .env
+VITE_API_BASE_URL=https://bcl.pemain12.com/api/v1
+EOF
+
+# 2. Install dependensi frontend dan build
+npm ci
+npm run build
+
+# 3. Bersihkan isi folder public_html lama (jika ada file index.html bawaan CyberPanel)
+rm -rf /home/bcl.pemain12.com/public_html/*
+
+# 4. Salin seluruh isi folder dist/ ke public_html
+cp -r dist/* /home/bcl.pemain12.com/public_html/
+```
+
+---
+
+### 2.7 Langkah 6: Hubungkan API & Storage Menggunakan Symlink
+Jalankan perintah ini agar request `/api` dan `/storage` langsung diarahkan ke backend Laravel secara instan:
+
+```bash
+cd /home/bcl.pemain12.com/public_html
+
+# 1. Buat symlink untuk API Backend
+ln -s /home/bcl.pemain12.com/backend/public api
+
+# 2. Buat symlink untuk file upload (foto bersama pemain, avatar profil, dll.)
+ln -s /home/bcl.pemain12.com/backend/storage/app/public storage
+```
+
+---
+
+### 2.8 Langkah 7: Konfigurasi OpenLiteSpeed Rewrite Rules (`.htaccess`)
+CyberPanel menggunakan OpenLiteSpeed yang membaca aturan rewrite dari file `.htaccess`.
+
+Buat atau edit file `/home/bcl.pemain12.com/public_html/.htaccess`:
+
+```bash
+nano /home/bcl.pemain12.com/public_html/.htaccess
+```
+
+Isi dengan konfigurasi berikut:
+
+```apache
+# ==============================================================================
+# Badminton Champion League - OpenLiteSpeed Configuration (.htaccess)
+# Domain: bcl.pemain12.com
+# ==============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Paksa HTTPS & Non-WWW
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. Izinkan akses langsung ke file aset fisik frontend (JS, CSS, PNG, JPG, ICO, dll.)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # 3. Routing untuk File Storage Upload (Foto Bersama & Avatar Pemain)
+    RewriteRule ^storage/(.*)$ storage/$1 [L]
+
+    # 4. Routing untuk Endpoint REST API Laravel Backend
+    RewriteCond %{REQUEST_URI} ^/api
+    RewriteRule ^api/(.*)$ api/index.php [L]
+
+    # 5. Routing React SPA (React Router fallback jika bukan file fisik)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# ==============================================================================
+# Security & Caching Headers
+# ==============================================================================
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Blokir akses ke file sensitif
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+---
+
+### 2.9 Langkah 8: Atur Hak Akses File (Permissions)
+Pastikan user CyberPanel memiliki hak akses penuh ke direktori aplikasi:
+
+```bash
+# Ganti 'bcl.pemain12.com' dengan nama user website Anda di CyberPanel
+USER_CYBERPANEL="bcl.pemain12.com"
+
+chown -R $USER_CYBERPANEL:$USER_CYBERPANEL /home/bcl.pemain12.com/backend
+chown -R $USER_CYBERPANEL:$USER_CYBERPANEL /home/bcl.pemain12.com/frontend
+chown -R $USER_CYBERPANEL:$USER_CYBERPANEL /home/bcl.pemain12.com/public_html
+
+# Berikan izin tulis untuk storage dan cache Laravel
+chmod -R 775 /home/bcl.pemain12.com/backend/storage
+chmod -R 775 /home/bcl.pemain12.com/backend/bootstrap/cache
+```
+
+---
+
+### 2.10 Langkah 9: Pasang SSL Let's Encrypt di CyberPanel
+1. Buka dashboard CyberPanel > **SSL** > **Manage SSL**.
+2. Pilih website `bcl.pemain12.com`.
+3. Klik **Issue SSL**.
+4. Pastikan DNS Record subdomain `bcl.pemain12.com` (tipe `A`) sudah mengarah ke IP Server VPS Anda.
+
+---
+
+### 2.11 Langkah 10: Jalankan Queue Worker & Cron Scheduler
+
+#### A. Cron Scheduler Laravel (Setiap Menit)
+1. Buka CyberPanel > **Websites** > **List Websites**.
+2. Klik tombol **Manage** pada `bcl.pemain12.com`.
+3. Scroll ke bagian **Cron Jobs** > **Add Cron Job**:
+   - **Minute:** `*`
+   - **Hour:** `*`
+   - **Day of month:** `*`
+   - **Month:** `*`
+   - **Day of week:** `*`
+   - **Command:**
+     ```bash
+     /usr/local/lsws/lsphp83/bin/php /home/bcl.pemain12.com/backend/artisan schedule:run >> /dev/null 2>&1
+     ```
+4. Klik **Add**.
+
+#### B. Queue Worker Daemon (Systemd Service)
+Untuk memproses antrean email, notifikasi, dan kalkulasi asynchronous:
+Buat file service di `/etc/systemd/system/bcl-worker.service`:
+
+```bash
+cat << 'EOF' > /etc/systemd/system/bcl-worker.service
+[Unit]
+Description=Badminton Champion League Queue Worker
+After=network.target mysql.service
+
+[Service]
+User=root
+Group=root
+Restart=always
+ExecStart=/usr/local/lsws/lsphp83/bin/php /home/bcl.pemain12.com/backend/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload dan aktifkan service:
+systemctl daemon-reload
+systemctl enable --now bcl-worker.service
+```
+
+Cek status worker:
+```bash
+systemctl status bcl-worker.service
+```
+
+---
+
+### 2.12 Restart OpenLiteSpeed
+Setelah konfigurasi selesai, restart OpenLiteSpeed agar semua aturan rewrite aktif:
+```bash
+systemctl restart lsws
+```
+
+---
+
+## 3. Opsi Alternatif: Dual Subdomain (`bcl.pemain12.com` & `api.bcl.pemain12.com`)
+
+Jika Anda menginginkan pemisahan virtual host 100% antara Frontend dan Backend:
+1. Buat subdomain **`api.bcl.pemain12.com`** di CyberPanel, arahkan Document Root-nya langsung ke:
+   ```text
+   /home/bcl.pemain12.com/backend/public
+   ```
+2. Buat subdomain **`bcl.pemain12.com`** di CyberPanel, arahkan Document Root-nya ke:
+   ```text
+   /home/bcl.pemain12.com/frontend/dist
+   ```
+3. Di file `frontend/.env`, set:
+   ```ini
+   VITE_API_BASE_URL=https://api.bcl.pemain12.com/api/v1
+   ```
+4. Di file `backend/.env`, set:
+   ```ini
+   APP_URL=https://api.bcl.pemain12.com
+   FRONTEND_URL=https://bcl.pemain12.com
+   SANCTUM_STATEFUL_DOMAINS=bcl.pemain12.com
+   ```
+
+---
+
+## 4. Standalone Nginx Configuration (`/etc/nginx/sites-available/bcl.conf`)
+
+Bagi server VPS mandiri tanpa panel (Ubuntu/Debian) yang menggunakan Nginx:
 
 ```nginx
 server {
     listen 80;
-    server_name champion.yourdomain.com;
+    server_name bcl.pemain12.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name champion.yourdomain.com;
+    server_name bcl.pemain12.com;
 
-    ssl_certificate /etc/letsencrypt/live/champion.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/champion.yourdomain.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/bcl.pemain12.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/bcl.pemain12.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
@@ -82,7 +472,7 @@ server {
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
     }
 
-    # Storage Link (Uploaded Avatars, Photos)
+    # Storage Link (Uploaded Avatars, Match Photos)
     location /storage {
         alias /var/www/bcl/backend/storage/app/public;
         access_log off;
@@ -98,69 +488,45 @@ server {
 
 ---
 
-## 3. Systemd Services
+## 5. Production Optimization Commands
 
-### 3.1 Queue Worker (`/etc/systemd/system/bcl-worker.service`)
-```ini
-[Unit]
-Description=Badminton Champion League Queue Worker
-After=network.target mysql.service
+Jalankan perintah ini setiap kali Anda melakukan update kode atau deployment baru:
 
-[Service]
-User=www-data
-Group=www-data
-Restart=always
-ExecStart=/usr/bin/php8.3 /var/www/bcl/backend/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+### Backend:
+```bash
+cd /home/bcl.pemain12.com/backend
 
-[Install]
-WantedBy=multi-user.target
+# 1. Bersihkan & re-cache konfigurasi
+/usr/local/lsws/lsphp83/bin/php artisan config:cache
+/usr/local/lsws/lsphp83/bin/php artisan route:cache
+/usr/local/lsws/lsphp83/bin/php artisan view:cache
+/usr/local/lsws/lsphp83/bin/php artisan event:cache
+
+# 2. Database migrations
+/usr/local/lsws/lsphp83/bin/php artisan migrate --force
+
+# 3. Restart queue worker agar membaca kode baru
+systemctl restart bcl-worker.service
 ```
 
-### 3.2 Crontab Scheduler
-Add to `/etc/cron.d/bcl-scheduler`:
+### Frontend:
 ```bash
-* * * * * www-data /usr/bin/php8.3 /var/www/bcl/backend/artisan schedule:run >> /dev/null 2>&1
-```
-
----
-
-## 4. Production Optimization Commands
-
-Run the following inside `/var/www/bcl/backend`:
-```bash
-# 1. Optimize configuration & routes
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
-
-# 2. Storage symlink
-php artisan storage:link
-
-# 3. Database migrations
-php artisan migrate --force
-```
-
-Inside `/var/www/bcl/frontend`:
-```bash
+cd /home/bcl.pemain12.com/frontend
 npm ci
 npm run build
+cp -r dist/* /home/bcl.pemain12.com/public_html/
 ```
 
 ---
 
-## 5. Production Health Check & Verification Checklist
+## 6. Production Health Check & Verification Checklist
 
-- [x] PHP 8.3 installed with extensions: `pdo_mysql`, `mbstring`, `openssl`, `curl`, `gd`, `zip`, `bcmath`.
-- [x] Database `badminton_champion_league` running on MySQL 8.0+ InnoDB engine.
-- [x] All 15 migrations executed successfully.
-- [x] Database seeded with administrative and player profiles.
-- [x] Automated feature test suite passes (11 tests, 51 assertions).
-- [x] Frontend builds with zero TypeScript errors into `dist/`.
-- [x] Battle Points cannot drop below 0 (verified by test & service invariant).
-- [x] Rank Points permit negative balances (verified on leaderboard & profile).
-- [x] Ranked matches atomically deduct 3 BP from all participants on `READY`.
-- [x] 100% Unanimous approval required before points are distributed.
-- [x] Score modifications reset previous approvals and create new version.
-- [x] Idempotency keys prevent duplicate point awards or duplicate deductions.
-- [x] Audit logs record all administrative disputes, cancellations, and adjustments.
+Setelah proses instalasi selesai di `bcl.pemain12.com`, lakukan checklist berikut:
+
+- [ ] **Akses URL Domain:** Buka `https://bcl.pemain12.com` di browser dan pastikan halaman utama Badminton Champion League termuat dengan benar dan gembok SSL aktif.
+- [ ] **Endpoint API:** Akses `https://bcl.pemain12.com/api/v1/leaderboard/battle` dan pastikan respon JSON 200 OK.
+- [ ] **Autentikasi Akun:** Lakukan registrasi akun pemain baru dan login. Pastikan cookie Sanctum / Bearer Token bekerja normal.
+- [ ] **Submit Match & Upload Foto:** Coba buat pertandingan dan input skor dengan mengunggah foto bersama pemain. Pastikan foto tersimpan dan dapat dimuat via `https://bcl.pemain12.com/storage/match_photos/...`.
+- [ ] **Komentar Pertandingan:** Beri komentar pada pertandingan yang sudah `COMPLETED`. Uji coba pengetikan kata kasar/rasis untuk memverifikasi sensor filter bekerja.
+- [ ] **Queue Worker:** Pastikan `systemctl status bcl-worker.service` dalam status `active (running)`.
+- [ ] **Scheduler:** Pastikan cron job dieksekusi setiap menit melalui log CyberPanel.
