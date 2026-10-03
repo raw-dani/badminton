@@ -46,16 +46,16 @@ Route::prefix('v1')->group(function () {
     // Public seasons
     Route::get('/seasons', [SeasonController::class, 'index']);
     Route::get('/seasons/active', [SeasonController::class, 'active']);
-    Route::get('/seasons/{id}/leaderboards', [SeasonController::class, 'leaderboards']);
+    Route::get('/seasons/{id}/leaderboards', [SeasonController::class, 'leaderboards'])->whereNumber('id');
 
     // Public matches browse
     Route::get('/matches', [MatchController::class, 'index']);
-    Route::get('/matches/{id}', [MatchController::class, 'show']);
-    Route::get('/matches/{id}/history', [MatchController::class, 'history']);
+    Route::get('/matches/{id}', [MatchController::class, 'show'])->whereNumber('id');
+    Route::get('/matches/{id}/history', [MatchController::class, 'history'])->whereNumber('id');
 
     // Public teams browse
     Route::get('/teams', [TeamController::class, 'index']);
-    Route::get('/teams/{id}', [TeamController::class, 'show']);
+    Route::get('/teams/{id}', [TeamController::class, 'show'])->whereNumber('id');
 
     // -------------------------------------------------------------
     // Authenticated Endpoints
@@ -85,27 +85,27 @@ Route::prefix('v1')->group(function () {
 
         // Teams & Team Management & Team Group Chat
         Route::get('/teams/my-team', [TeamController::class, 'myTeam']);
-        Route::post('/teams', [TeamController::class, 'store']);
-        Route::post('/teams/{id}/upgrade-quota', [TeamController::class, 'upgradeQuota']);
-        Route::post('/teams/{id}/join', [TeamController::class, 'join']);
-        Route::post('/teams/{id}/leave', [TeamController::class, 'leave']);
-        Route::put('/teams/{id}/members/{memberId}/role', [TeamController::class, 'changeMemberRole']);
-        Route::delete('/teams/{id}/members/{memberId}', [TeamController::class, 'kickMember']);
         Route::get('/teams/my-team/messages', [TeamController::class, 'getMessages']);
         Route::post('/teams/my-team/messages', [TeamController::class, 'sendMessage']);
+        Route::post('/teams', [TeamController::class, 'store']);
+        Route::post('/teams/{id}/upgrade-quota', [TeamController::class, 'upgradeQuota'])->whereNumber('id');
+        Route::post('/teams/{id}/join', [TeamController::class, 'join'])->whereNumber('id');
+        Route::post('/teams/{id}/leave', [TeamController::class, 'leave'])->whereNumber('id');
+        Route::put('/teams/{id}/members/{memberId}/role', [TeamController::class, 'changeMemberRole'])->whereNumber('id')->whereNumber('memberId');
+        Route::delete('/teams/{id}/members/{memberId}', [TeamController::class, 'kickMember'])->whereNumber('id')->whereNumber('memberId');
 
         // Matches workflow
         Route::post('/matches', [MatchController::class, 'store']);
-        Route::post('/matches/{id}/cancel', [MatchController::class, 'cancel']);
-        Route::post('/matches/{id}/accept', [MatchController::class, 'acceptInvitation']);
-        Route::post('/matches/{id}/reject', [MatchController::class, 'rejectInvitation']);
-        Route::post('/matches/{id}/score', [MatchController::class, 'submitScore']);
-        Route::post('/matches/{id}/approve', [MatchController::class, 'approveScore']);
-        Route::post('/matches/{id}/dispute', [MatchController::class, 'disputeScore']);
+        Route::post('/matches/{id}/cancel', [MatchController::class, 'cancel'])->whereNumber('id');
+        Route::post('/matches/{id}/accept', [MatchController::class, 'acceptInvitation'])->whereNumber('id');
+        Route::post('/matches/{id}/reject', [MatchController::class, 'rejectInvitation'])->whereNumber('id');
+        Route::post('/matches/{id}/score', [MatchController::class, 'submitScore'])->whereNumber('id');
+        Route::post('/matches/{id}/approve', [MatchController::class, 'approveScore'])->whereNumber('id');
+        Route::post('/matches/{id}/dispute', [MatchController::class, 'disputeScore'])->whereNumber('id');
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
-        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->whereNumber('id');
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
         // -------------------------------------------------------------
