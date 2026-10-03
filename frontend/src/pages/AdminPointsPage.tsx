@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Flame, Trophy, AlertCircle, Check, ArrowRight, ShieldAlert } from 'lucide-react'
 import api from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import type { ApiResponse } from '../types'
 
 interface PlayerItem {
@@ -13,6 +14,7 @@ interface PlayerItem {
 }
 
 export const AdminPointsPage: React.FC = () => {
+  const { refreshUser } = useAuth()
   const [players, setPlayers] = useState<PlayerItem[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [pointType, setPointType] = useState<'BATTLE' | 'RANK'>('BATTLE')
@@ -77,7 +79,8 @@ export const AdminPointsPage: React.FC = () => {
       if (res.data.success) {
         setSuccess(`Successfully adjusted ${amount > 0 ? `+${amount}` : amount} ${pointType} points for @${selectedPlayer?.username}. Recorded in immutable audit ledger.`)
         setReason('')
-        // Refresh players list
+        // Refresh players list and logged in user
+        refreshUser()
         api.get<ApiResponse<PlayerItem[]>>('/players').then((r) => setPlayers(r.data.data || []))
       } else {
         setError(res.data.message || 'Point adjustment failed.')

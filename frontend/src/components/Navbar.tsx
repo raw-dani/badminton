@@ -25,7 +25,7 @@ import {
 import { getInitials } from '../lib/utils'
 
 export const Navbar: React.FC = () => {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth()
+  const { user, isAuthenticated, isAdmin, logout, refreshUser } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
@@ -33,9 +33,10 @@ export const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false)
 
-  // Fetch unread notifications counter
+  // Fetch unread notifications counter and refresh user points on route change
   useEffect(() => {
     if (isAuthenticated) {
+      refreshUser()
       api.get<ApiResponse<{ unread_count: number }>>('/notifications')
         .then((res) => {
           if (res.data?.data?.unread_count !== undefined) {

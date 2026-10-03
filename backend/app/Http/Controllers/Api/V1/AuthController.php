@@ -193,7 +193,7 @@ class AuthController extends Controller
 
     protected function formatUserResponse(User $user): array
     {
-        $user->loadMissing(['profile', 'pointBalance']);
+        $user->load(['profile', 'pointBalance']);
         $ranks = $this->leaderboardService->getUserRankingPositions($user->id);
 
         return [

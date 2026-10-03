@@ -29,7 +29,7 @@ interface SummaryStats {
 }
 
 export const PointLedgerPage: React.FC = () => {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { t } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -72,6 +72,7 @@ export const PointLedgerPage: React.FC = () => {
           setMeta(raw)
           if (raw.summary) {
             setSummary(raw.summary)
+            refreshUser()
           }
         }
       })
@@ -83,8 +84,8 @@ export const PointLedgerPage: React.FC = () => {
     fetchTransactions()
   }, [activeTab, category, page])
 
-  const battleBalance = user?.point_balance?.battle_points ?? summary?.battle_balance ?? 0
-  const rankBalance = user?.point_balance?.rank_points ?? summary?.rank_balance ?? 0
+  const battleBalance = summary?.battle_balance !== undefined ? summary.battle_balance : (user?.point_balance?.battle_points ?? 0)
+  const rankBalance = summary?.rank_balance !== undefined ? summary.rank_balance : (user?.point_balance?.rank_points ?? 0)
 
   // Category labels helper
   const getCategoryLabel = (cat: string, pType: string) => {

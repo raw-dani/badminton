@@ -31,7 +31,7 @@ import type { Team, TeamMember, TeamMessage, ApiResponse } from '../types'
 import { getInitials } from '../lib/utils'
 
 export const TeamsPage: React.FC = () => {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { t } = useLanguage()
 
   // Main state
@@ -48,6 +48,9 @@ export const TeamsPage: React.FC = () => {
   const [browseTeams, setBrowseTeams] = useState<Team[]>([])
   const [browseSearch, setBrowseSearch] = useState<string>('')
   const [browseLoading, setBrowseLoading] = useState<boolean>(false)
+
+  // Live Points Balance state
+  const [liveBp, setLiveBp] = useState<number | null>(null)
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false)
@@ -137,9 +140,21 @@ export const TeamsPage: React.FC = () => {
     }
   }
 
+  // Load Live Point Balance
+  const fetchLiveBalance = async () => {
+    try {
+      const res = await api.get<ApiResponse<{ battle_points: number; rank_points: number }>>('/points/balance')
+      if (res.data?.success && res.data?.data) {
+        setLiveBp(res.data.data.battle_points)
+      }
+      refreshUser()
+    } catch (err) {}
+  }
+
   useEffect(() => {
     fetchMyTeam()
     fetchBrowseTeams()
+    fetchLiveBalance()
   }, [])
 
   // Auto-scroll chat to bottom
@@ -171,6 +186,7 @@ export const TeamsPage: React.FC = () => {
       if (res.data.success) {
         setShowCreateModal(false)
         showToast(res.data.message || 'Tim berhasil dibuat!')
+        await fetchLiveBalance()
         await fetchMyTeam()
         setActiveTab('my_team')
       }
@@ -196,6 +212,7 @@ export const TeamsPage: React.FC = () => {
       if (res.data.success) {
         setShowUpgradeModal(false)
         showToast(res.data.message || 'Kuota tim berhasil di-upgrade!')
+        await fetchLiveBalance()
         await fetchMyTeam()
       }
     } catch (err: any) {
@@ -298,7 +315,7 @@ export const TeamsPage: React.FC = () => {
     }
   }
 
-  const userBp = user?.point_balance?.battle_points ?? 0
+  const userBp = liveBp !== null ? liveBp : (user?.point_balance?.battle_points ?? 0)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -331,6 +348,7 @@ export const TeamsPage: React.FC = () => {
         {!myTeamData && (
           <button
             onClick={() => {
+              fetchLiveBalance()
               setCreateError(null)
               setShowCreateModal(true)
             }}
@@ -498,6 +516,7 @@ export const TeamsPage: React.FC = () => {
                   {myTeamData.is_admin && (
                     <button
                       onClick={() => {
+                        fetchLiveBalance()
                         setUpgradeError(null)
                         setShowUpgradeModal(true)
                       }}

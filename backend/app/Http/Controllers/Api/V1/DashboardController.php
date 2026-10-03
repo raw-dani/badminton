@@ -27,7 +27,7 @@ class DashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()->loadMissing(['profile', 'pointBalance']);
+        $user = $request->user()->load(['profile', 'pointBalance']);
         $userId = $user->id;
 
         // Leaderboard ranking positions
