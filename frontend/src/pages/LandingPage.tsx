@@ -20,7 +20,7 @@ import type { LeaderboardPlayer, ApiResponse } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { GoldShuttlecock } from '../components/GoldShuttlecock'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const LandingPage: React.FC = () => {
   const { isAuthenticated } = useAuth()
@@ -348,7 +348,7 @@ export const LandingPage: React.FC = () => {
                       #{idx + 1}
                     </div>
                     <div className="w-9 h-9 rounded-lg bg-battle-500/20 text-battle-300 font-bold flex items-center justify-center text-xs border border-battle-500/30 overflow-hidden">
-                      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : getInitials(p.name)}
+                      {p.avatar_url ? <img src={getAssetUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : getInitials(p.name)}
                     </div>
                     <div>
                       <div className="text-sm font-bold text-white hover:text-battle-400 truncate max-w-[150px]">
@@ -397,7 +397,7 @@ export const LandingPage: React.FC = () => {
                       #{idx + 1}
                     </div>
                     <div className="w-9 h-9 rounded-lg bg-rank-500/20 text-rank-300 font-bold flex items-center justify-center text-xs border border-rank-500/30 overflow-hidden">
-                      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : getInitials(p.name)}
+                      {p.avatar_url ? <img src={getAssetUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : getInitials(p.name)}
                     </div>
                     <div>
                       <div className="text-sm font-bold text-white hover:text-rank-400 truncate max-w-[150px]">

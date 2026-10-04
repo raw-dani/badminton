@@ -38,7 +38,7 @@ import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import type { Team, TeamMember, TeamMessage, TeamWar, TeamSeasonScore, ApiResponse } from '../types'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const TeamsPage: React.FC = () => {
   const { user, refreshUser } = useAuth()
@@ -958,7 +958,7 @@ export const TeamsPage: React.FC = () => {
                           <Link to={`/players/${memberUser.username}`} className="flex items-center gap-3 group">
                             <div className="w-9 h-9 rounded-xl bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
                               {memberUser.profile?.avatar_url ? (
-                                <img src={memberUser.profile.avatar_url} alt={memberUser.name} className="w-full h-full object-cover" />
+                                <img src={getAssetUrl(memberUser.profile.avatar_url)} alt={memberUser.name} className="w-full h-full object-cover" />
                               ) : (
                                 getInitials(memberUser.name)
                               )}
@@ -1727,7 +1727,7 @@ export const TeamsPage: React.FC = () => {
                       >
                         <div className="w-8 h-8 rounded-xl bg-white/10 text-slate-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0 mt-0.5">
                           {msg.user?.profile?.avatar_url ? (
-                            <img src={msg.user.profile.avatar_url} alt={msg.user.name} className="w-full h-full object-cover" />
+                            <img src={getAssetUrl(msg.user.profile.avatar_url)} alt={msg.user.name} className="w-full h-full object-cover" />
                           ) : (
                             getInitials(msg.user?.name || 'U')
                           )}

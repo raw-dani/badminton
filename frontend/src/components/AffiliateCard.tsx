@@ -15,7 +15,7 @@ import {
 import api from '../lib/api'
 import type { AffiliateStats, ApiResponse } from '../types'
 import { useLanguage } from '../context/LanguageContext'
-import { formatDate, getInitials } from '../lib/utils'
+import { formatDate, getInitials, getAssetUrl } from '../lib/utils'
 
 export const AffiliateCard: React.FC = () => {
   const { t } = useLanguage()
@@ -222,7 +222,7 @@ export const AffiliateCard: React.FC = () => {
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-300 font-bold flex items-center justify-center text-xs border border-brand-500/30 overflow-hidden shrink-0">
                             {ref.referred_user?.avatar_url ? (
-                              <img src={ref.referred_user.avatar_url} alt="" className="w-full h-full object-cover" />
+                              <img src={getAssetUrl(ref.referred_user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               getInitials(ref.referred_user?.name || 'Player')
                             )}

@@ -22,7 +22,7 @@ import {
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import type { User, ApiResponse } from '../types'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const AdminUsersPage: React.FC = () => {
   const { user: currentUser } = useAuth()
@@ -272,7 +272,7 @@ export const AdminUsersPage: React.FC = () => {
                             isAdmin ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-white/10 text-slate-300 border-white/10'
                           }`}>
                             {u.profile?.avatar_url ? (
-                              <img src={u.profile.avatar_url} alt={u.name} className="w-full h-full object-cover" />
+                              <img src={getAssetUrl(u.profile.avatar_url)} alt={u.name} className="w-full h-full object-cover" />
                             ) : (
                               getInitials(u.name)
                             )}
