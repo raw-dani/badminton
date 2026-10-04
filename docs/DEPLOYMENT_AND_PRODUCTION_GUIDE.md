@@ -553,13 +553,21 @@ Opsi ini adalah arsitektur paling bersih, aman, dan standar industri di mana **B
 3. **Upload Isi Folder `dist/` ke `public_html` `bcl.pemain12.com`:**
    ```bash
    # Bersihkan file lama di public_html
-   rm -rf /home/bcl.pemain12.com/public_html/*
+   rm -rf /home/pemain12.com/bcl.pemain12.com/public_html/*
+   # (atau /home/bcl.pemain12.com/public_html/* tergantung struktur user CyberPanel Anda)
 
    # Salin hasil build dist ke public_html
-   cp -r frontend/dist/* /home/bcl.pemain12.com/public_html/
+   cp -r frontend/dist/* /home/pemain12.com/bcl.pemain12.com/public_html/
    ```
 
-4. **Buat File `.htaccess` Khusus Frontend (`/home/bcl.pemain12.com/public_html/.htaccess`):**
+4. **Hubungkan Storage Backend ke Frontend Menggunakan Symlink (Sangat Direkomendasikan):**
+   Agar request foto profil atau bukti pertandingan baik yang dipanggil lewat `https://bcl.pemain12.com/storage/...` maupun `https://api.bcl.pemain12.com/storage/...` keduanya langsung tampil tanpa 404:
+   ```bash
+   cd /home/pemain12.com/bcl.pemain12.com/public_html
+   ln -s /home/pemain12.com/api.bcl.pemain12.com/backend/storage/app/public storage
+   ```
+
+5. **Buat File `.htaccess` Khusus Frontend (`/home/pemain12.com/bcl.pemain12.com/public_html/.htaccess`):**
    Karena backend sudah berada di subdomain lain, file `.htaccess` di frontend menjadi **sangat sederhana** hanya untuk React Router SPA fallback dan HTTPS:
 
    ```apache
