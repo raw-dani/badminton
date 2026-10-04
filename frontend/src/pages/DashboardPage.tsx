@@ -30,7 +30,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { AffiliateCard } from '../components/AffiliateCard'
 import type { GameMatch, MatchInvitation, ApiResponse } from '../types'
-import { formatShortDate, getInitials, getStatusBadgeClass } from '../lib/utils'
+import { formatShortDate, getInitials, getStatusBadgeClass, getAssetUrl } from '../lib/utils'
 
 interface DashboardData {
   user: {
@@ -148,7 +148,7 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-brand-500/20 text-brand-300 font-extrabold flex items-center justify-center text-xl border border-brand-500/30 overflow-hidden shadow-lg shadow-brand-500/10">
             {data.user.profile?.avatar_url ? (
-              <img src={data.user.profile.avatar_url} alt={data.user.name} className="w-full h-full object-cover" />
+              <img src={getAssetUrl(data.user.profile.avatar_url)} alt={data.user.name} className="w-full h-full object-cover" />
             ) : (
               getInitials(data.user.name)
             )}

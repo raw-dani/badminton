@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { AffiliateCard } from '../components/AffiliateCard'
 import type { ApiResponse } from '../types'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const ProfileSettingsPage: React.FC = () => {
   const { user, refreshUser } = useAuth()
@@ -167,7 +167,7 @@ export const ProfileSettingsPage: React.FC = () => {
           <div className="relative group">
             <div className="w-24 h-24 rounded-3xl bg-brand-500/20 text-brand-300 font-extrabold flex items-center justify-center text-3xl border-2 border-brand-500/30 overflow-hidden shadow-xl">
               {avatarPreview ? (
-                <img src={avatarPreview} alt={user?.name} className="w-full h-full object-cover" />
+                <img src={getAssetUrl(avatarPreview)} alt={user?.name} className="w-full h-full object-cover" />
               ) : (
                 getInitials(user?.name)
               )}

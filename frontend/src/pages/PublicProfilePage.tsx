@@ -17,7 +17,7 @@ import api from '../lib/api'
 import type { ApiResponse, GameMatch } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { formatShortDate, getInitials, getStatusBadgeClass } from '../lib/utils'
+import { formatShortDate, getInitials, getStatusBadgeClass, getAssetUrl } from '../lib/utils'
 
 interface ProfileData {
   personal: {
@@ -129,7 +129,7 @@ export const PublicProfilePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             <div className="w-24 h-24 rounded-3xl bg-brand-500/20 text-brand-300 font-extrabold flex items-center justify-center text-3xl border-2 border-brand-500/30 overflow-hidden shadow-xl shrink-0">
               {data.personal.avatar_url ? (
-                <img src={data.personal.avatar_url} alt={data.personal.name} className="w-full h-full object-cover" />
+                <img src={getAssetUrl(data.personal.avatar_url)} alt={data.personal.name} className="w-full h-full object-cover" />
               ) : (
                 getInitials(data.personal.name)
               )}

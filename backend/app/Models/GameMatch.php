@@ -190,4 +190,15 @@ class GameMatch extends Model
     {
         return $this->hasMany(MatchComment::class, 'match_id')->orderBy('created_at', 'asc');
     }
+
+    public function getMatchPhotoUrlAttribute(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+        return url($value);
+    }
 }

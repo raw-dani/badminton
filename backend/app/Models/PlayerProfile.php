@@ -29,4 +29,15 @@ class PlayerProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getAvatarUrlAttribute(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+        return url($value);
+    }
 }

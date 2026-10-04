@@ -22,7 +22,7 @@ import {
   Languages,
   Users,
 } from 'lucide-react'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, isAdmin, logout, refreshUser } = useAuth()
@@ -214,7 +214,7 @@ export const Navbar: React.FC = () => {
                   >
                     <div className="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-300 font-bold flex items-center justify-center text-xs border border-brand-500/30 overflow-hidden">
                       {user.profile?.avatar_url ? (
-                        <img src={user.profile.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                        <img src={getAssetUrl(user.profile.avatar_url)} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
                         getInitials(user.name)
                       )}

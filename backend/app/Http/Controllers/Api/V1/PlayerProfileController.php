@@ -206,7 +206,7 @@ class PlayerProfileController extends Controller
             ['avatar_url' => $avatarUrl]
         );
 
-        return $this->success(['avatar_url' => $avatarUrl], 'Profile photo uploaded successfully');
+        return $this->success(['avatar_url' => url($avatarUrl)], 'Profile photo uploaded successfully');
     }
 
     /**

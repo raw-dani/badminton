@@ -5,7 +5,7 @@ import api from '../lib/api'
 import type { LeaderboardPlayer, ApiResponse } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getInitials } from '../lib/utils'
+import { getInitials, getAssetUrl } from '../lib/utils'
 
 export const BattleLeaderboardPage: React.FC = () => {
   const { user } = useAuth()
@@ -89,7 +89,7 @@ export const BattleLeaderboardPage: React.FC = () => {
             </div>
             <div className="w-16 h-16 rounded-2xl bg-battle-500/20 text-battle-300 font-bold flex items-center justify-center text-xl mx-auto mb-2 border border-slate-400/40 overflow-hidden">
               {topThree[1].avatar_url ? (
-                <img src={topThree[1].avatar_url} alt={topThree[1].name} className="w-full h-full object-cover" />
+                <img src={getAssetUrl(topThree[1].avatar_url)} alt={topThree[1].name} className="w-full h-full object-cover" />
               ) : (
                 getInitials(topThree[1].name)
               )}
@@ -109,7 +109,7 @@ export const BattleLeaderboardPage: React.FC = () => {
             </div>
             <div className="w-20 h-20 rounded-2xl bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center text-2xl mx-auto mb-2 border-2 border-amber-400/50 overflow-hidden">
               {topThree[0].avatar_url ? (
-                <img src={topThree[0].avatar_url} alt={topThree[0].name} className="w-full h-full object-cover" />
+                <img src={getAssetUrl(topThree[0].avatar_url)} alt={topThree[0].name} className="w-full h-full object-cover" />
               ) : (
                 getInitials(topThree[0].name)
               )}
@@ -129,7 +129,7 @@ export const BattleLeaderboardPage: React.FC = () => {
             </div>
             <div className="w-16 h-16 rounded-2xl bg-battle-500/20 text-battle-300 font-bold flex items-center justify-center text-xl mx-auto mb-2 border border-amber-700/40 overflow-hidden">
               {topThree[2].avatar_url ? (
-                <img src={topThree[2].avatar_url} alt={topThree[2].name} className="w-full h-full object-cover" />
+                <img src={getAssetUrl(topThree[2].avatar_url)} alt={topThree[2].name} className="w-full h-full object-cover" />
               ) : (
                 getInitials(topThree[2].name)
               )}
@@ -227,7 +227,7 @@ export const BattleLeaderboardPage: React.FC = () => {
                         <Link to={`/players/${p.username}`} className="flex items-center gap-3 group">
                           <div className="w-10 h-10 rounded-xl bg-battle-500/20 text-battle-300 font-bold flex items-center justify-center text-xs border border-battle-500/30 overflow-hidden shrink-0">
                             {p.avatar_url ? (
-                              <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" />
+                              <img src={getAssetUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" />
                             ) : (
                               getInitials(p.name)
                             )}
