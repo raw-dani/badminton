@@ -279,8 +279,8 @@ class AdminController extends Controller
         $query = GameMatch::with([
             'creator.profile',
             'matchPlayers.user.profile',
-            'currentScores',
-            'currentApprovals.user',
+            'scores',
+            'approvals.user.profile',
         ])->orderByDesc('scheduled_at');
 
         if ($status) {

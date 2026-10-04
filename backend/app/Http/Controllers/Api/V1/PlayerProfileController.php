@@ -107,7 +107,7 @@ class PlayerProfileController extends Controller
             $q->where('user_id', $user->id);
         })
         ->where('status', 'COMPLETED')
-        ->with(['matchPlayers.user.profile', 'currentScores'])
+        ->with(['matchPlayers.user.profile', 'scores'])
         ->orderByDesc('scheduled_at')
         ->limit(10)
         ->get();
@@ -238,7 +238,7 @@ class PlayerProfileController extends Controller
         $query = GameMatch::whereHas('matchPlayers', function ($q) use ($id) {
             $q->where('user_id', $id);
         })
-        ->with(['matchPlayers.user.profile', 'currentScores', 'creator'])
+        ->with(['matchPlayers.user.profile', 'scores', 'creator'])
         ->orderByDesc('scheduled_at');
 
         if ($type) {

@@ -93,17 +93,10 @@ class GameMatch extends Model
         return $this->hasMany(MatchScore::class, 'match_id');
     }
 
-    public function currentScores(): HasMany
-    {
-        return $this->hasMany(MatchScore::class, 'match_id')
-            ->where('version', $this->current_score_version)
-            ->orderBy('set_number');
-    }
-
     public function getCurrentScoresAttribute()
     {
         if ($this->relationLoaded('scores')) {
-            return $this->scores->where('version', $this->current_score_version)->values();
+            return $this->scores->where('version', $this->current_score_version)->sortBy('set_number')->values();
         }
         return MatchScore::where('match_id', $this->id)
             ->where('version', $this->current_score_version)
@@ -119,12 +112,6 @@ class GameMatch extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(MatchScoreApproval::class, 'match_id');
-    }
-
-    public function currentApprovals(): HasMany
-    {
-        return $this->hasMany(MatchScoreApproval::class, 'match_id')
-            ->where('version', $this->current_score_version);
     }
 
     public function getCurrentApprovalsAttribute()

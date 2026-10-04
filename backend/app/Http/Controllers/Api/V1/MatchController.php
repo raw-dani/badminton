@@ -42,8 +42,8 @@ class MatchController extends Controller
         $query = GameMatch::with([
             'creator.profile',
             'matchPlayers.user.profile',
-            'currentScores',
-            'currentApprovals',
+            'scores',
+            'approvals.user.profile',
         ])
         ->orderByDesc('scheduled_at');
 
@@ -315,9 +315,9 @@ class MatchController extends Controller
             'disputer.profile',
             'matchPlayers.user.profile',
             'matchPlayers.user.pointBalance',
-            'currentScores',
+            'scores',
             'scoreVersions.submitter',
-            'currentApprovals.user',
+            'approvals.user.profile',
             'invitations.invitedUser',
             'pointTransactions.user',
             'comments.user.profile',
@@ -371,7 +371,7 @@ class MatchController extends Controller
                 }
             });
 
-            $match->refresh()->load(['matchPlayers.user.profile', 'currentScores', 'currentApprovals']);
+            $match->refresh()->load(['matchPlayers.user.profile', 'scores', 'approvals.user.profile']);
 
             return $this->success($match, 'Invitation accepted successfully.');
         } catch (InvalidArgumentException $e) {
@@ -468,10 +468,15 @@ class MatchController extends Controller
             );
 
             $match->refresh()->load([
+                'creator.profile',
+                'disputer.profile',
                 'matchPlayers.user.profile',
-                'currentScores',
-                'currentApprovals.user',
-                'scoreVersions',
+                'matchPlayers.user.pointBalance',
+                'scores',
+                'scoreVersions.submitter',
+                'approvals.user.profile',
+                'invitations.invitedUser',
+                'pointTransactions.user',
                 'comments.user.profile',
             ]);
 
@@ -503,10 +508,16 @@ class MatchController extends Controller
             );
 
             $match->refresh()->load([
+                'creator.profile',
+                'disputer.profile',
                 'matchPlayers.user.profile',
-                'currentScores',
-                'currentApprovals.user',
+                'matchPlayers.user.pointBalance',
+                'scores',
+                'scoreVersions.submitter',
+                'approvals.user.profile',
+                'invitations.invitedUser',
                 'pointTransactions.user',
+                'comments.user.profile',
             ]);
 
             return $this->success($match, 'Score approved successfully.');
@@ -534,9 +545,16 @@ class MatchController extends Controller
             );
 
             $match->refresh()->load([
+                'creator.profile',
+                'disputer.profile',
                 'matchPlayers.user.profile',
-                'currentScores',
-                'currentApprovals.user',
+                'matchPlayers.user.pointBalance',
+                'scores',
+                'scoreVersions.submitter',
+                'approvals.user.profile',
+                'invitations.invitedUser',
+                'pointTransactions.user',
+                'comments.user.profile',
             ]);
 
             return $this->success($match, 'Dispute recorded. An administrator has been notified.');

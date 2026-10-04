@@ -61,7 +61,7 @@ class DashboardController extends Controller
             $q->where('user_id', $userId)
               ->whereColumn('version', 'matches.current_score_version');
         })
-        ->with(['creator.profile', 'matchPlayers.user.profile', 'currentScores'])
+        ->with(['creator.profile', 'matchPlayers.user.profile', 'scores', 'approvals.user.profile'])
         ->get();
 
         // Disputed matches involving this user
@@ -69,7 +69,7 @@ class DashboardController extends Controller
             $q->where('user_id', $userId);
         })
         ->where('status', 'DISPUTED')
-        ->with(['creator.profile', 'disputer.profile'])
+        ->with(['creator.profile', 'disputer.profile', 'scores', 'approvals.user.profile'])
         ->get();
 
         // Recent matches (last 10 completed)
@@ -77,7 +77,7 @@ class DashboardController extends Controller
             $q->where('user_id', $userId);
         })
         ->where('status', 'COMPLETED')
-        ->with(['matchPlayers.user.profile', 'currentScores'])
+        ->with(['matchPlayers.user.profile', 'scores'])
         ->orderByDesc('scheduled_at')
         ->limit(10)
         ->get();

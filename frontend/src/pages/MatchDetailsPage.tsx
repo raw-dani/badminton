@@ -638,6 +638,20 @@ export const MatchDetailsPage: React.FC = () => {
             <span>{t('match.alreadyApproved')}. Menunggu persetujuan pemain lainnya.</span>
           </div>
         )}
+
+        {match.status === 'COMPLETED' && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                <strong>Hasil Disahkan:</strong> Seluruh pemain ({approvedCount}/{expectedParticipants}) telah menyetujui skor ini secara mufakat (100% Unanimous). Pertandingan telah selesai dan poin resmi didistribusikan.
+              </span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+              ✓ 100% Disetujui
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Point Transactions Ledger for Completed Matches */}

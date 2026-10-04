@@ -456,4 +456,48 @@ class BadmintonLeagueBusinessRulesTest extends TestCase
         $this->assertEquals('Hacked Name', $this->playerA->fresh()->name);
         $this->assertEquals('Player B', $this->playerB->fresh()->name); // Player B untouched
     }
+
+    public function test_show_match_returns_current_approvals(): void
+    {
+        $match = GameMatch::create([
+            'match_code' => 'M-TEST-APP1',
+            'season_id' => $this->season->id,
+            'creator_id' => $this->playerA->id,
+            'type' => 'BATTLE',
+            'mode' => 'SINGLES',
+            'venue' => 'Arena',
+            'scheduled_at' => now(),
+            'status' => 'READY',
+            'current_score_version' => 0,
+        ]);
+        MatchPlayer::create(['match_id' => $match->id, 'user_id' => $this->playerA->id, 'team' => 'TEAM_A', 'slot' => 1, 'invitation_status' => 'ACCEPTED']);
+        MatchPlayer::create(['match_id' => $match->id, 'user_id' => $this->playerB->id, 'team' => 'TEAM_B', 'slot' => 1, 'invitation_status' => 'ACCEPTED']);
+
+        // Player A submits score
+        $this->matchResultService->submitScore($match, $this->playerA->id, [
+            ['set_number' => 1, 'team_a_score' => 21, 'team_b_score' => 15],
+            ['set_number' => 2, 'team_a_score' => 21, 'team_b_score' => 17],
+        ]);
+
+        $response = $this->actingAs($this->playerB)->getJson("/api/v1/matches/{$match->id}");
+        $response->assertStatus(200);
+        $data = $response->json('data');
+
+        $this->assertNotEmpty($data['current_approvals']);
+        $this->assertEquals('APPROVED', $data['current_approvals'][0]['status']);
+        $this->assertEquals('WAITING_APPROVAL', $data['status']);
+
+        // Player B calls approve API endpoint
+        $approveResponse = $this->actingAs($this->playerB)->postJson("/api/v1/matches/{$match->id}/approve", [
+            'version' => 1,
+        ]);
+        $approveResponse->assertStatus(200);
+        $approveData = $approveResponse->json('data');
+
+        $this->assertEquals('COMPLETED', $approveData['status']);
+        $this->assertCount(2, $approveData['current_approvals']);
+        $this->assertEquals('APPROVED', $approveData['current_approvals'][0]['status']);
+        $this->assertEquals('APPROVED', $approveData['current_approvals'][1]['status']);
+    }
 }
+
