@@ -277,23 +277,30 @@ export const MatchDetailsPage: React.FC = () => {
 
         {/* Invitation Action Banner for Pending Player */}
         {isParticipant && myPlayerRecord && myPlayerRecord.invitation_status === 'PENDING' && match.status === 'PENDING_ACCEPTANCE' && (
-          <div className="p-4 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-brand-200">
-              <strong>Undangan Menunggu Respon:</strong> Anda telah diundang ke pertandingan ini. Silakan konfirmasi partisipasi Anda.
+          <div className="p-4 sm:p-5 rounded-2xl bg-brand-500/15 border border-brand-500/30 space-y-3">
+            <div className="space-y-1">
+              <div className="text-xs font-bold text-brand-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-brand-400" />
+                <span>Undangan Pertandingan Menunggu Respon</span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                Anda telah diundang untuk bermain dalam pertandingan ini. Silakan konfirmasi ketersediaan Anda sebelum pertandingan dimulai.
+              </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
               <button
                 onClick={handleRejectInvite}
                 disabled={actionLoading}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 transition-colors flex items-center justify-center gap-1.5"
               >
                 {t('match.rejectInvite')}
               </button>
               <button
                 onClick={handleAcceptInvite}
                 disabled={actionLoading}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-all shadow-md"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-all shadow-md flex items-center justify-center gap-1.5"
               >
+                <CheckCircle className="w-4 h-4 stroke-[2.5]" />
                 {t('match.acceptInvite')}
               </button>
             </div>
@@ -527,19 +534,19 @@ export const MatchDetailsPage: React.FC = () => {
 
       {/* Match Documentation Photo */}
       {match.match_photo_url && (
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
-              <Camera className="w-5 h-5 text-brand-400" />
+        <div className="glass-panel p-4 sm:p-8 rounded-3xl border border-white/10 space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <h3 className="font-display font-bold text-base sm:text-lg text-white flex items-center gap-2">
+              <Camera className="w-5 h-5 text-brand-400 shrink-0" />
               Foto Bersama Pemain
             </h3>
-            <span className="text-xs text-slate-400">Dokumentasi & Bukti Pertandingan</span>
+            <span className="text-xs text-slate-400">Dokumentasi & Bukti Pertandingan Lapangan</span>
           </div>
-          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40 max-h-[500px] flex items-center justify-center p-2">
+          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/60 flex items-center justify-center p-2 min-h-[200px] max-h-[380px] sm:max-h-[520px]">
             <img
               src={getAssetUrl(match.match_photo_url)}
               alt="Foto Bersama Pemain"
-              className="w-full h-auto max-h-[480px] object-contain rounded-xl shadow-lg"
+              className="max-w-full max-h-[350px] sm:max-h-[490px] w-auto h-auto object-contain rounded-xl shadow-2xl mx-auto"
             />
           </div>
         </div>
@@ -607,23 +614,29 @@ export const MatchDetailsPage: React.FC = () => {
 
         {/* User Approval Call to Action */}
         {isParticipant && match.status === 'WAITING_APPROVAL' && !hasApprovedCurrentVersion && (
-          <div className="p-5 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-amber-200">
-              <strong>Tindakan Diperlukan:</strong> Harap tinjau skor yang diinputkan untuk versi {match.current_score_version}.
-              Anda dapat menyetujui atau mengajukan sengketa bila hasil tidak sesuai.
+          <div className="p-4 sm:p-6 rounded-2xl bg-amber-500/15 border border-amber-500/30 space-y-3.5">
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-bold text-amber-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Tindakan Diperlukan: Tinjau Skor Versi {match.current_score_version}</span>
+              </div>
+              <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed">
+                Harap periksa keabsahan skor dan foto bersama pemain yang telah diinputkan. Anda dapat menyetujui jika skor benar, atau ajukan sengketa jika terjadi ketidaksesuaian.
+              </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
               <button
                 onClick={() => setIsDisputeModalOpen(true)}
                 disabled={actionLoading}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 transition-colors flex items-center justify-center gap-1.5"
               >
+                <AlertTriangle className="w-3.5 h-3.5" />
                 {t('match.disputeScore')}
               </button>
               <button
                 onClick={handleApproveScore}
                 disabled={actionLoading}
-                className="flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto px-7 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
               >
                 <CheckCircle className="w-4 h-4 stroke-[2.5]" />
                 {t('match.approveScore')}

@@ -251,11 +251,11 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
             </p>
 
             {photoPreview ? (
-              <div className="relative mt-2 rounded-xl overflow-hidden border border-white/15 bg-black/40 group max-h-52 flex items-center justify-center">
+              <div className="relative mt-2 rounded-xl overflow-hidden border border-white/15 bg-black/60 group min-h-[160px] max-h-64 flex items-center justify-center p-1.5">
                 <img
                   src={photoPreview}
                   alt="Foto Bersama Pemain"
-                  className="w-full h-48 object-cover rounded-xl"
+                  className="max-w-full max-h-60 w-auto h-auto object-contain rounded-xl"
                 />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                   <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">

@@ -39,6 +39,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import type { Team, TeamMember, TeamMessage, TeamWar, TeamSeasonScore, ApiResponse } from '../types'
 import { getInitials, getAssetUrl } from '../lib/utils'
+import { notifyTeamChatMessage } from '../lib/soundNotification'
 
 export const TeamsPage: React.FC = () => {
   const { user, refreshUser } = useAuth()
@@ -85,6 +86,8 @@ export const TeamsPage: React.FC = () => {
   const [chatLoading, setChatLoading] = useState<boolean>(false)
   const [sendingMessage, setSendingMessage] = useState<boolean>(false)
   const chatMessagesEndRef = useRef<HTMLDivElement>(null)
+  const lastMessageIdRef = useRef<number | null>(null)
+  const isFirstLoadRef = useRef<boolean>(true)
 
   // Team Wars state
   const [wars, setWars] = useState<TeamWar[]>([])
@@ -205,7 +208,21 @@ export const TeamsPage: React.FC = () => {
     try {
       const res = await api.get<ApiResponse<TeamMessage[]>>('/teams/my-team/messages')
       if (res.data.success && Array.isArray(res.data.data)) {
-        setMessages(res.data.data)
+        const msgs = res.data.data
+        if (msgs.length > 0) {
+          const latest = msgs[msgs.length - 1]
+          if (
+            !isFirstLoadRef.current &&
+            lastMessageIdRef.current !== null &&
+            latest.id > lastMessageIdRef.current &&
+            latest.user_id !== user?.id
+          ) {
+            notifyTeamChatMessage()
+          }
+          lastMessageIdRef.current = latest.id
+        }
+        isFirstLoadRef.current = false
+        setMessages(msgs)
       }
     } catch (err) {
       // Not in a team or unauthorized
@@ -296,15 +313,20 @@ export const TeamsPage: React.FC = () => {
 
   // Auto-scroll chat to bottom is DISABLED as requested by user.
 
-  // Polling for chat messages when in chat tab
+  // Polling for chat messages (fast on chat tab, background on other tabs for sound/vibration alerts)
   useEffect(() => {
-    if (activeTab === 'chat' && myTeamData) {
+    if (!myTeamData) return
+
+    if (activeTab === 'chat') {
       fetchMessages()
-      const interval = setInterval(() => {
-        fetchMessages(true)
-      }, 4000)
-      return () => clearInterval(interval)
     }
+
+    const intervalTime = activeTab === 'chat' ? 3500 : 10000
+    const interval = setInterval(() => {
+      fetchMessages(true)
+    }, intervalTime)
+
+    return () => clearInterval(interval)
   }, [activeTab, myTeamData])
 
   // Polling / Refetching when changing tabs
@@ -1270,26 +1292,26 @@ export const TeamsPage: React.FC = () => {
                       )}
 
                       {/* Captain Action Bar */}
-                      <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+                      <div className="mt-4 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         
                         {/* Pending Actions */}
                         {war.status === 'PENDING' && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                             {isChallenged && myTeamData?.is_admin && (
                               <>
                                 <button
                                   onClick={() => handleAcceptWar(war.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors shadow-lg"
+                                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors shadow-lg"
                                 >
                                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                                   <span>Terima Tantangan War</span>
                                 </button>
                                 <button
                                   onClick={() => handleRejectWar(war.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
+                                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
                                 >
                                   <X className="w-3.5 h-3.5" />
-                                  <span>Tolak</span>
+                                  <span>Tolak Tantangan</span>
                                 </button>
                               </>
                             )}
@@ -1297,7 +1319,7 @@ export const TeamsPage: React.FC = () => {
                             {isChallenger && myTeamData?.is_admin && (
                               <button
                                 onClick={() => handleCancelWar(war.id)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
                               >
                                 <span>Batalkan Tantangan</span>
                               </button>

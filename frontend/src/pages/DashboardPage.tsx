@@ -281,28 +281,29 @@ export const DashboardPage: React.FC = () => {
             
             {/* Pending Invitations */}
             {data.pending_actions.invitations.map((inv) => (
-              <div key={inv.id} className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+              <div key={inv.id} className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
                     {t('dashboard.invitations', 'Undangan Pertandingan')}
                   </div>
-                  <div className="text-sm font-bold text-white truncate">
+                  <div className="text-sm font-bold text-white">
                     Match #{inv.match?.match_code} • {inv.match?.type} {inv.match?.mode}
                   </div>
                   <div className="text-xs text-slate-300">
                     {inv.invited_by?.name ? `${t('match.invitedBy', 'Diundang oleh')} ${inv.invited_by.name}` : ''} • {inv.match?.venue}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                   <button
                     onClick={() => handleRejectInvitation(inv.match_id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+                    className="flex-1 px-4 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
                   >
                     {t('match.rejectInvite', 'Tolak')}
                   </button>
                   <button
                     onClick={() => handleAcceptInvitation(inv.match_id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-colors shadow-sm"
+                    className="flex-1 px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-colors shadow-sm"
                   >
                     {t('match.acceptInvite', 'Terima')}
                   </button>
@@ -312,25 +313,27 @@ export const DashboardPage: React.FC = () => {
 
             {/* Scores Awaiting Approval */}
             {data.pending_actions.scores_awaiting_approval.map((match) => (
-              <div key={match.id} className="p-4 rounded-2xl bg-battle-500/15 border border-battle-500/30 flex items-center justify-between gap-4">
-                <div className="min-w-0">
+              <div key={match.id} className="p-4 sm:p-5 rounded-2xl bg-battle-500/15 border border-battle-500/30 flex flex-col justify-between gap-3">
+                <div className="min-w-0 space-y-1">
                   <div className="text-[11px] font-bold text-battle-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 animate-pulse" />
+                    <Clock className="w-3.5 h-3.5 animate-pulse text-amber-400" />
                     {t('dashboard.scoresAwaiting', 'Skor Menunggu Persetujuan Anda')}
                   </div>
-                  <div className="text-sm font-bold text-white truncate">
+                  <div className="text-sm font-bold text-white">
                     Match #{match.match_code} ({t('admin.version', 'v')}{match.current_score_version})
                   </div>
                   <div className="text-xs text-slate-300">
                     {t('match.unanimousNote', 'Skor diinput oleh lawan. Persetujuan Anda wajib.')}
                   </div>
                 </div>
-                <Link
-                  to={`/matches/${match.id}`}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-all shrink-0"
-                >
-                  {t('match.approveScore', 'Tinjau & Setujui')}
-                </Link>
+                <div className="pt-2 border-t border-white/5">
+                  <Link
+                    to={`/matches/${match.id}`}
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-brand-400 hover:bg-brand-300 transition-all shadow-md"
+                  >
+                    {t('match.approveScore', 'Tinjau & Setujui')}
+                  </Link>
+                </div>
               </div>
             ))}
 

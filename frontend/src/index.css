@@ -49,3 +49,19 @@
   background-size: 32px 32px;
   background-position: 0 0, 16px 16px;
 }
+
+/* Mobile-first touch & scrolling enhancements */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+.mobile-touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+

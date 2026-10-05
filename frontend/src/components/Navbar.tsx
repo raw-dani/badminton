@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -23,6 +23,7 @@ import {
   Users,
 } from 'lucide-react'
 import { getInitials, getAssetUrl } from '../lib/utils'
+import { notifyGeneralNotification } from '../lib/soundNotification'
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, isAdmin, logout, refreshUser } = useAuth()
@@ -32,19 +33,31 @@ export const Navbar: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false)
+  const prevUnreadCountRef = useRef<number | null>(null)
 
-  // Fetch unread notifications counter and refresh user points on route change
+  // Fetch unread notifications counter and refresh user points on route change & background polling
   useEffect(() => {
-    if (isAuthenticated) {
-      refreshUser()
-      api.get<ApiResponse<{ unread_count: number }>>('/notifications')
-        .then((res) => {
-          if (res.data?.data?.unread_count !== undefined) {
-            setUnreadCount(res.data.data.unread_count)
+    if (!isAuthenticated) return
+
+    refreshUser()
+
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get<ApiResponse<{ unread_count: number }>>('/notifications')
+        if (res.data?.data?.unread_count !== undefined) {
+          const newCount = res.data.data.unread_count
+          if (prevUnreadCountRef.current !== null && newCount > prevUnreadCountRef.current) {
+            notifyGeneralNotification()
           }
-        })
-        .catch(() => {})
+          prevUnreadCountRef.current = newCount
+          setUnreadCount(newCount)
+        }
+      } catch {}
     }
+
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 15000)
+    return () => clearInterval(interval)
   }, [isAuthenticated, location.pathname])
 
   const handleLogout = async () => {
